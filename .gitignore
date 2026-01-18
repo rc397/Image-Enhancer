@@ -1,0 +1,13 @@
+# OS / editor noise
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Node (if you add tooling later)
+node_modules/
+
+# Python (if you add scripts later)
+__pycache__/
+*.pyc

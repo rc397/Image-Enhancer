@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Enhancer (Obama Mode)</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="wrap">
+      <header class="top">
+        <h1>Image Enhancer</h1>
+        <p class="sub">Now featuring: <strong>Obama Mode</strong> (no AI, just canvas crimes).</p>
+      </header>
+
+      <section class="panel">
+        <div class="controls">
+          <label class="file">
+            <span>Input image</span>
+            <input id="inputFile" type="file" accept="image/*" />
+          </label>
+
+          <label class="file">
+            <span>Obama template (optional)</span>
+            <input id="templateFile" type="file" accept="image/*" />
+          </label>
+
+          <div class="buttons">
+            <button id="run" disabled>Just Obama</button>
+            <button id="download" disabled>Download PNG</button>
+          </div>
+
+          <details class="help">
+            <summary>How it works</summary>
+            <ul>
+              <li>No AI. We resize the Obama template to your input image size and output that.</li>
+              <li>Your uploaded input image is only used to choose the output dimensions.</li>
+            </ul>
+          </details>
+        </div>
+
+        <div class="preview">
+          <div class="canvasWrap">
+            <canvas id="canvas"></canvas>
+            <div id="status" class="status">Load an input image to begin.</div>
+          </div>
+          <div class="hint">Tip: upload a template in the UI, or (when hosted) add <code>assets/obama-template.png</code> as the default.</div>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <span>Local-only. Your images never leave the browser.</span>
+      </footer>
+    </main>
+
+    <script type="module" src="main.js"></script>
+  </body>
+</html>
