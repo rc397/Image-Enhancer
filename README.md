@@ -7,7 +7,7 @@ Static in-browser webpage that converts any uploaded image into Obama by resizin
 1. Open `index.html` in a browser (you can double-click it).
 2. Upload any image under **Input image** (only used to pick output size).
 3. Upload your Obama template image under **Obama template** (this becomes the output).
-   - Optional (when hosted): add `assets/obama-template.png` and it will auto-load.
+   - Optional (when hosted): add `assets/obama-template.webp` and it will auto-load.
 4. Click **Just Obama** and optionally **Download PNG**.
 
 ## Notes

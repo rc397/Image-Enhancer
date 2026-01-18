@@ -38,7 +38,7 @@ async function loadOptionalDefaultTemplate() {
     return;
   }
   try {
-    const img = await loadImageFromURL('assets/obama-template.png');
+    const img = await loadImageFromURL('assets/obama-template.webp');
     templateImg = img;
     setStatus('Default Obama template loaded.');
   } catch {
@@ -167,9 +167,9 @@ runBtn.addEventListener('click', async () => {
 
   if (!templateImg) {
     const extra = location.protocol === 'file:'
-      ? ' (Tip: if you want a default template without uploading, host this folder (e.g. GitHub Pages) and add assets/obama-template.png)'
+      ? ' (Tip: if you want a default template without uploading, host this folder (e.g. GitHub Pages) and add assets/obama-template.webp)'
       : '';
-    setStatus('No Obama template found. Upload one in the UI or add assets/obama-template.png' + extra);
+    setStatus('No Obama template found. Upload one in the UI or add assets/obama-template.webp' + extra);
     return;
   }
 
