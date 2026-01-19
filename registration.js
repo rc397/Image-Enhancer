@@ -226,6 +226,7 @@ export async function animateDemonsRegistration({
   smoothPasses,
   frameStride,
   pyramidLevels,
+  sampleCount,
   cancel,
   onStatus,
   drawScaleToOut,
@@ -258,6 +259,24 @@ export async function animateDemonsRegistration({
   let stepsDone = 0;
   const totalSteps = itersPerLevel.reduce((a, b) => a + b, 0);
   const eps = 1e-3;
+  const requestedSamples = Math.max(1, (sampleCount | 0) || 8000);
+
+  // Deterministic "permutation" index generator: idx = (start + k*(N-1)) mod N
+  // step = N-1 is coprime with N for any N>1, so this visits every index exactly once.
+  function forEachSampleIndex(N, count, start, cb) {
+    if (N <= 1) {
+      cb(0);
+      return;
+    }
+    const step = N - 1;
+    let idx = ((start % N) + N) % N;
+    const c = Math.min(count, N);
+    for (let k = 0; k < c; k++) {
+      cb(idx);
+      idx += step;
+      idx %= N;
+    }
+  }
 
   for (let levelIndex = 0; levelIndex < sizes.length; levelIndex++) {
     if (cancel && cancel()) return 'cancelled';
@@ -326,32 +345,40 @@ export async function animateDemonsRegistration({
     const levelStep = baseStep * (0.95 + 0.55 * (1 - levelIndex / Math.max(1, sizes.length - 1)));
     const levelBlurPasses = clamp(blurPasses + (levelIndex === 0 ? 1 : 0), 1, 3);
 
+    // Exact number of pixels updated per iteration (requested by UI).
+    const levelSamples = Math.min(requestedSamples, w * h);
+    // Different seed per level so it doesn't always hit the same pixels.
+    const seedBase = ((w * 73856093) ^ (h * 19349663) ^ (requestedSamples * 83492791)) >>> 0;
+
+    const rgba = [0, 0, 0, 255];
+
     for (let iter = 0; iter < levelIters; iter++) {
       if (cancel && cancel()) return 'cancelled';
 
-      // Build warped gray by sampling source at displaced coords.
-      for (let y = 0; y < h; y++) {
-        for (let x = 0; x < w; x++) {
-          const i = y * w + x;
-          const sx = x + dx[i];
-          const sy = y + dy[i];
-          const rgba = [0, 0, 0, 255];
-          sampleBilinearRGBA(srcRGBA, w, h, sx, sy, rgba);
-          warpedGray[i] = 0.2126 * rgba[0] + 0.7152 * rgba[1] + 0.0722 * rgba[2];
-        }
-      }
+      // Update displacement using EXACTLY `levelSamples` pixels.
+      // This is deterministic and makes the UI boxes literally true.
+      const N = w * h;
+      const start = (seedBase + (iter + 1) * 2654435761) >>> 0;
 
-      // Demons update using target gradient.
-      for (let i = 0; i < dx.length; i++) {
-        const diff = tgtGray[i] - warpedGray[i];
+      forEachSampleIndex(N, levelSamples, start, (i) => {
+        const x = i % w;
+        const y = (i / w) | 0;
+        const sx = x + dx[i];
+        const sy = y + dy[i];
+
+        sampleBilinearRGBA(srcRGBA, w, h, sx, sy, rgba);
+        const warped = 0.2126 * rgba[0] + 0.7152 * rgba[1] + 0.0722 * rgba[2];
+        const diff = tgtGray[i] - warped;
+
         const gxi = tgtGx[i];
         const gyi = tgtGy[i];
         const g2 = gxi * gxi + gyi * gyi;
-        if (g2 < 0.02) continue; // ignore near-flat regions
+        if (g2 < 0.02) return; // ignore near-flat regions
+
         const denom = g2 + diff * diff + eps;
         dx[i] += levelStep * (diff * gxi) / denom;
         dy[i] += levelStep * (diff * gyi) / denom;
-      }
+      });
 
       smoothField(dx, w, h, blurR, levelBlurPasses);
       smoothField(dy, w, h, blurR, levelBlurPasses);

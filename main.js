@@ -65,28 +65,14 @@ function drawCoverImageToCanvas(img, outCanvas) {
   return outCtx;
 }
 
-function chooseWorkSize(dstW, dstH, maxPixels) {
-  // Choose a working resolution based on a pixel budget.
-  const areaDst = Math.max(1, Math.floor(dstW * dstH));
-  const area = Math.min(areaDst, Math.max(64 * 64, Math.floor(maxPixels)));
-  const ar = dstW / Math.max(1, dstH);
-
-  let w = Math.round(Math.sqrt(area * ar));
-  let h = Math.round(w / ar);
-
-  if (w > dstW) {
-    w = dstW;
-    h = Math.round(w / ar);
-  }
-  if (h > dstH) {
-    h = dstH;
-    w = Math.round(h * ar);
-  }
-
-  w = Math.max(64, Math.min(dstW, w));
-  h = Math.max(64, Math.min(dstH, h));
-
-  return { w, h };
+function chooseWorkSize(dstW, dstH) {
+  // Working resolution for warping preview (separate from output size).
+  const maxDim = 560;
+  const s = Math.min(1, maxDim / Math.max(dstW, dstH));
+  return {
+    w: Math.max(64, Math.round(dstW * s)),
+    h: Math.max(64, Math.round(dstH * s)),
+  };
 }
 
 async function refreshButtons() {
@@ -190,7 +176,7 @@ runBtn.addEventListener('click', async () => {
   // Use a working resolution for speed, but render scaled to the output canvas.
   setStatus('Enhancing (aligning pixels)...');
 
-  const work = chooseWorkSize(width, height, budget.maxPixels);
+  const work = chooseWorkSize(width, height);
   const workCanvas = document.createElement('canvas');
   workCanvas.width = work.w;
   workCanvas.height = work.h;
@@ -226,6 +212,7 @@ runBtn.addEventListener('click', async () => {
     smoothPasses: budget.smoothPasses,
     frameStride,
     pyramidLevels: budget.pyramidLevels,
+    sampleCount: budget.sampleCount,
     cancel: isCancelled,
     onStatus: (i, n) => setStatus(`Enhancing (aligning pixels)... ${i}/${n}`),
     drawScaleToOut: () => {

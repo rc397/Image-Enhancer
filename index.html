@@ -29,10 +29,10 @@
             <input id="templateFile" type="file" accept="image/*" />
           </label>
 
-          <div class="warpQuality" aria-label="Pixel boost">
+          <div class="warpQuality" aria-label="Align pixels">
             <div class="warpQualityHeader">
-              <div class="title">Pixel boost</div>
-              <div class="meter">Selected: <span id="warpPixelsOut">1000</span></div>
+              <div class="title">Align pixels</div>
+              <div class="meter">Per step: <span id="warpPixelsOut">8000</span></div>
             </div>
 
             <div class="warpGrid" role="radiogroup" aria-label="Add pixels">
@@ -44,7 +44,7 @@
               <button class="warpOption" type="button" data-warp-pixels="12000" aria-pressed="false">+12000<small>max</small></button>
             </div>
 
-            <div class="warpNote">This only changes internal alignment resolution (output size stays the same).</div>
+            <div class="warpNote">Higher values align more pixels each step (output size stays the same).</div>
           </div>
 
           <div class="buttons">
@@ -77,6 +77,6 @@
 
     <script type="module" src="clouds.js?v=3"></script>
     <script type="module" src="clouds-interactive.js?v=1"></script>
-    <script type="module" src="main.js?v=10"></script>
+    <script type="module" src="main.js?v=11"></script>
   </body>
 </html>

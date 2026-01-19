@@ -3,7 +3,7 @@ function clamp(n, min, max) {
 }
 
 const STORAGE_KEY = 'warpPixelsK';
-const DEFAULT_K = 1000;
+const DEFAULT_K = 8000;
 
 function getButtons(root) {
   return Array.from(root.querySelectorAll('[data-warp-pixels]'));
@@ -49,19 +49,18 @@ export function wireWarpQualityUI(root = document) {
 }
 
 export function getWarpBudget() {
-  // Interpret the UI numbers as thousands of pixels (211 -> 211k, 12000 -> 12M)
-  const k = getWarpPixelsK();
-  const maxPixels = k * 1000;
+  // Interpret the UI numbers as an exact pixel count aligned per iteration.
+  const sampleCount = getWarpPixelsK();
 
-  // Derive solver tuning from budget.
-  const logMin = Math.log10(211_000);
-  const logMax = Math.log10(12_000_000);
-  const t = clamp((Math.log10(maxPixels) - logMin) / (logMax - logMin), 0, 1);
+  // Derive solver tuning from sampleCount.
+  const min = 211;
+  const max = 12000;
+  const t = clamp((sampleCount - min) / (max - min), 0, 1);
 
-  const pyramidLevels = t > 0.72 ? 4 : 3;
-  const iterations = Math.round(85 + 170 * t);
-  const step = 1.6 - 0.25 * t;
-  const smoothPasses = t > 0.6 ? 2 : 1;
+  const pyramidLevels = t > 0.82 ? 4 : 3;
+  const iterations = Math.round(90 + 130 * t);
+  const step = 1.55 - 0.18 * t;
+  const smoothPasses = t > 0.55 ? 2 : 1;
 
-  return { maxPixels, pyramidLevels, iterations, step, smoothPasses };
+  return { sampleCount, pyramidLevels, iterations, step, smoothPasses };
 }
