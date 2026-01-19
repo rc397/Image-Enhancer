@@ -25,8 +25,8 @@ function makeCloud() {
 
   const w = rand(180, 420);
   const y = rand(6, 52);
-  const o = rand(0.18, 0.55);
-  const blur = rand(0.2, 1.8);
+  const o = rand(0.35, 0.85);
+  const blur = rand(0.0, 1.2);
   const dur = rand(42, 120);
   const delay = rand(-dur, 0);
 
@@ -61,7 +61,7 @@ function desiredCloudCount() {
   const w = window.innerWidth || 1200;
   const h = window.innerHeight || 800;
   const base = (w / 420) * (h / 900);
-  return clamp(Math.round(base * 10), 8, 22);
+  return clamp(Math.round(base * 14), 10, 30);
 }
 
 function rebuildClouds() {
