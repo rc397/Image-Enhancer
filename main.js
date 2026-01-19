@@ -6,6 +6,7 @@ import {
   readEnhanceParams,
   updateEnhanceLabels,
 } from './enhancements.js';
+import { animateProgress } from './animation.js';
 
 const inputFile = document.getElementById('inputFile');
 const templateFile = document.getElementById('templateFile');
@@ -19,6 +20,7 @@ const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
 let inputImg = null;
 let templateImg = null;
+let enhanceRunId = 0;
 
 function wireEnhancementsUI() {
   const ids = ['sharpen', 'denoise', 'details', 'restore'];
@@ -137,6 +139,9 @@ templateFile.addEventListener('change', async () => {
 runBtn.addEventListener('click', async () => {
   if (!inputImg) return;
 
+  const runId = ++enhanceRunId;
+  const isCancelled = () => runId !== enhanceRunId;
+
   if (!templateImg) {
     await loadOptionalDefaultTemplate();
   }
@@ -150,6 +155,9 @@ runBtn.addEventListener('click', async () => {
   }
 
   setStatus('Enhancing...');
+
+  runBtn.disabled = true;
+  downloadBtn.disabled = true;
 
   const srcW = inputImg.naturalWidth || inputImg.width;
   const srcH = inputImg.naturalHeight || inputImg.height;
@@ -175,7 +183,30 @@ runBtn.addEventListener('click', async () => {
   const pixels = width * height;
   const perPixelThreshold = 4_000_000; // keep UI responsive on large upscales
 
+  // 1) Animated preview: always show original first, then morph.
+  // Use the fast tile-warp path during animation for responsiveness.
+  setStatus('Enhancing (preview)...');
+  await animateProgress({
+    durationMs: 1100,
+    isCancelled,
+    onFrame: (t) => {
+      const s = strength * t;
+      applyDeterministicTileWarp({
+        ctx,
+        srcCanvas,
+        profileCanvas: profCanvas,
+        width,
+        height,
+        strength: s,
+      });
+    },
+  });
+
+  if (isCancelled()) return;
+
+  // 2) Finalize: for smaller outputs, compute the higher-quality per-pixel result once.
   if (pixels <= perPixelThreshold) {
+    setStatus('Finalizing...');
     const srcCtx = srcCanvas.getContext('2d', { willReadFrequently: true });
     const profCtx = profCanvas.getContext('2d', { willReadFrequently: true });
     const srcImgData = srcCtx.getImageData(0, 0, width, height);
@@ -189,21 +220,12 @@ runBtn.addEventListener('click', async () => {
       strength,
       displace: 1,
     });
-
     ctx.putImageData(out, 0, 0);
-  } else {
-    applyDeterministicTileWarp({
-      ctx,
-      srcCanvas,
-      profileCanvas: profCanvas,
-      width,
-      height,
-      strength,
-    });
   }
 
   downloadBtn.disabled = false;
   setStatus('Done.');
+  runBtn.disabled = false;
 });
 
 downloadBtn.addEventListener('click', () => {
