@@ -214,7 +214,10 @@ runBtn.addEventListener('click', async () => {
     pyramidLevels: budget.pyramidLevels,
     sampleCount: budget.sampleCount,
     cancel: isCancelled,
-    onStatus: (i, n) => setStatus(`Enhancing (aligning pixels)... ${i}/${n}`),
+    onStatus: (i, n) => {
+      const pct = n > 0 ? Math.min(100, Math.max(0, Math.round((i / n) * 100))) : 100;
+      setStatus(`Enhancing (aligning pixels)... ${pct}%`);
+    },
     drawScaleToOut: () => {
       ctx.clearRect(0, 0, width, height);
       ctx.drawImage(workCanvas, 0, 0, width, height);
