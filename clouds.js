@@ -83,3 +83,6 @@ window.addEventListener('resize', () => {
 });
 
 rebuildClouds();
+                                                rebuildClouds();
+
+

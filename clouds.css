@@ -1,3 +1,4 @@
+
 #cloudLayer {
   position: fixed;
   inset: 0;
@@ -83,3 +84,4 @@
     radial-gradient(900px 520px at 50% 110%, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.0) 60%);
   opacity: 0.55;
 }
+

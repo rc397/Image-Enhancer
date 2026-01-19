@@ -1,14 +1,14 @@
 # Image-Enhancer
 
-Static in-browser webpage that converts any uploaded image into Obama by resizing a template image to match the input (no AI, no backend).
+Static in-browser webpage that applies a template-based image transform entirely in your browser (no AI, no backend).
 
 ## How to use
 
 1. Open `index.html` in a browser (you can double-click it).
-2. Upload any image under **Input image** (only used to pick output size).
-3. Upload your Obama template image under **Obama template** (this becomes the output).
-   - Optional (when hosted): add `assets/obama-template.webp` and it will auto-load.
-4. Click **Just Obama** and optionally **Download PNG**.
+2. Upload any image under **Source image** (only used to pick output size).
+3. Upload your **Template image** (this becomes the output).
+   - Optional (when hosted): add `assets/default-template.webp` and it will auto-load.
+4. Click **Apply** and optionally **Download PNG**.
 
 ## Notes
 

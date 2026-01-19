@@ -46,24 +46,6 @@ async function loadOptionalDefaultTemplate() {
   }
 }
 
-function clamp255(x) {
-  return x < 0 ? 0 : x > 255 ? 255 : x;
-}
-
-function luminance(r, g, b) {
-  // Rec.709
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
-
-function fitContain(srcW, srcH, dstW, dstH) {
-  const s = Math.min(dstW / srcW, dstH / srcH);
-  const w = Math.max(1, Math.floor(srcW * s));
-  const h = Math.max(1, Math.floor(srcH * s));
-  const x = Math.floor((dstW - w) / 2);
-  const y = Math.floor((dstH - h) / 2);
-  return { x, y, w, h };
-}
-
 function fitCover(srcW, srcH, dstW, dstH) {
   const s = Math.max(dstW / srcW, dstH / srcH);
   const w = Math.max(1, Math.ceil(srcW * s));
@@ -71,24 +53,6 @@ function fitCover(srcW, srcH, dstW, dstH) {
   const x = Math.floor((dstW - w) / 2);
   const y = Math.floor((dstH - h) / 2);
   return { x, y, w, h };
-}
-
-function drawImageToSize(img, width, height) {
-  const off = document.createElement('canvas');
-  off.width = width;
-  off.height = height;
-  const c = off.getContext('2d', { willReadFrequently: true });
-
-  // black background to avoid transparency weirdness
-  c.fillStyle = '#000';
-  c.fillRect(0, 0, width, height);
-
-  const r = fitContain(img.naturalWidth || img.width, img.naturalHeight || img.height, width, height);
-  c.imageSmoothingEnabled = true;
-  c.imageSmoothingQuality = 'high';
-  c.drawImage(img, r.x, r.y, r.w, r.h);
-
-  return { canvas: off, ctx: c };
 }
 
 function drawImageToSizeCover(img, width, height) {

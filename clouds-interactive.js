@@ -50,3 +50,4 @@ window.addEventListener('mouseleave', () => {
 
 // Start centered.
 setShift(0, 0);
+
