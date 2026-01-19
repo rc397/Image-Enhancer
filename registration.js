@@ -2,6 +2,11 @@ function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
 }
 
+function smoothstep(t) {
+  t = clamp(t, 0, 1);
+  return t * t * (3 - 2 * t);
+}
+
 function sampleBilinearGray(gray, w, h, x, y) {
   const x0 = clamp(Math.floor(x), 0, w - 1);
   const y0 = clamp(Math.floor(y), 0, h - 1);
@@ -20,6 +25,29 @@ function sampleBilinearGray(gray, w, h, x, y) {
   const v10 = gray[i10];
   const v01 = gray[i01];
   const v11 = gray[i11];
+
+  const v0 = v00 + (v10 - v00) * tx;
+  const v1 = v01 + (v11 - v01) * tx;
+  return v0 + (v1 - v0) * ty;
+}
+
+function sampleBilinearField(field, w, h, x, y) {
+  const x0 = clamp(Math.floor(x), 0, w - 1);
+  const y0 = clamp(Math.floor(y), 0, h - 1);
+  const x1 = clamp(x0 + 1, 0, w - 1);
+  const y1 = clamp(y0 + 1, 0, h - 1);
+  const tx = x - x0;
+  const ty = y - y0;
+
+  const i00 = y0 * w + x0;
+  const i10 = y0 * w + x1;
+  const i01 = y1 * w + x0;
+  const i11 = y1 * w + x1;
+
+  const v00 = field[i00];
+  const v10 = field[i10];
+  const v01 = field[i01];
+  const v11 = field[i11];
 
   const v0 = v00 + (v10 - v00) * tx;
   const v1 = v01 + (v11 - v01) * tx;
@@ -146,13 +174,49 @@ function warpRGBA(srcRGBA, w, h, dx, dy, applyFrac, outImgData) {
   }
 }
 
+function buildPyramidSizes(baseW, baseH, levels) {
+  const lv = clamp(levels | 0, 1, 4);
+  const sizes = [];
+  for (let i = lv - 1; i >= 0; i--) {
+    const s = Math.pow(2, i);
+    sizes.push({
+      w: Math.max(32, Math.round(baseW / s)),
+      h: Math.max(32, Math.round(baseH / s)),
+    });
+  }
+  // Ensure last is exactly base
+  sizes[sizes.length - 1] = { w: baseW, h: baseH };
+  return sizes;
+}
+
+function upsampleDisplacement(prevDx, prevDy, prevW, prevH, w, h) {
+  const dx = new Float32Array(w * h);
+  const dy = new Float32Array(w * h);
+  const sx = prevW / w;
+  const sy = prevH / h;
+  const scaleX = w / prevW;
+  const scaleY = h / prevH;
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const px = x * sx;
+      const py = y * sy;
+      const i = y * w + x;
+      dx[i] = sampleBilinearField(prevDx, prevW, prevH, px, py) * scaleX;
+      dy[i] = sampleBilinearField(prevDy, prevW, prevH, px, py) * scaleY;
+    }
+  }
+
+  return { dx, dy };
+}
+
 /**
  * Demons-style registration (deterministic) on a working-resolution canvas.
  * It iteratively updates a displacement field so the warped source matches target.
  */
 export async function animateDemonsRegistration({
-  srcCtx,
-  targetCtx,
+  srcCanvas,
+  targetCanvas,
   outCtx,
   workWidth,
   workHeight,
@@ -161,87 +225,145 @@ export async function animateDemonsRegistration({
   smoothRadius,
   smoothPasses,
   frameStride,
+  pyramidLevels,
   cancel,
   onStatus,
   drawScaleToOut,
 }) {
-  const w = workWidth;
-  const h = workHeight;
-  const iters = Math.max(1, iterations | 0);
-  const stepSize = Number.isFinite(step) ? step : 1.2;
+  if (!srcCanvas || !targetCanvas) {
+    throw new Error('animateDemonsRegistration: srcCanvas and targetCanvas are required');
+  }
+
+  const baseW = workWidth;
+  const baseH = workHeight;
+  const itersTotal = Math.max(1, iterations | 0);
+  const baseStep = Number.isFinite(step) ? step : 1.2;
   const blurR = clamp((smoothRadius | 0) || 2, 1, 8);
   const blurPasses = clamp((smoothPasses | 0) || 1, 1, 3);
   const stride = clamp((frameStride | 0) || 1, 1, 8);
+  const levels = clamp((pyramidLevels | 0) || 3, 1, 4);
 
-  const srcImg = srcCtx.getImageData(0, 0, w, h);
-  const tgtImg = targetCtx.getImageData(0, 0, w, h);
+  const sizes = buildPyramidSizes(baseW, baseH, levels);
 
-  const srcRGBA = srcImg.data;
-  const tgtGray = imageDataToGray(tgtImg);
-  const { gx: tgtGx, gy: tgtGy } = computeGradient(tgtGray, w, h);
+  // Split iterations across levels (more at finer scales).
+  const weights = sizes.map((_, i) => 0.6 + 0.4 * (i / Math.max(1, sizes.length - 1)));
+  const wsum = weights.reduce((a, b) => a + b, 0);
+  const itersPerLevel = weights.map((w) => Math.max(6, Math.round((itersTotal * w) / wsum)));
 
-  const dx = new Float32Array(w * h);
-  const dy = new Float32Array(w * h);
+  let dx = null;
+  let dy = null;
+  let prevW = 0;
+  let prevH = 0;
 
-  // A scratch for warped source gray
-  const warpedGray = new Float32Array(w * h);
-  const outImg = outCtx.createImageData(w, h);
-
-  function renderToOut(applyFrac) {
-    // Warp RGBA using a fraction of the displacement field.
-    // This makes pixels visibly travel over time instead of snapping.
-    warpRGBA(srcRGBA, w, h, dx, dy, applyFrac, outImg);
-    outCtx.putImageData(outImg, 0, 0);
-
-    // If the caller wants us to scale this working canvas to a bigger output,
-    // they can pass a function that draws outCtx.canvas onto the final canvas.
-    if (typeof drawScaleToOut === 'function') {
-      drawScaleToOut();
-    }
-  }
-
-  // Initial: show original
-  renderToOut(0);
-
+  let stepsDone = 0;
+  const totalSteps = itersPerLevel.reduce((a, b) => a + b, 0);
   const eps = 1e-3;
-  for (let iter = 0; iter < iters; iter++) {
+
+  for (let levelIndex = 0; levelIndex < sizes.length; levelIndex++) {
     if (cancel && cancel()) return 'cancelled';
 
-    // Build warped gray by sampling source gray at displaced coords.
-    // Convert source to gray on the fly from srcRGBA sampling.
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        const i = y * w + x;
-        const sx = x + dx[i];
-        const sy = y + dy[i];
+    const { w, h } = sizes[levelIndex];
+    const levelIters = itersPerLevel[levelIndex];
 
-        // Sample RGBA and compute gray
-        const rgba = [0, 0, 0, 255];
-        sampleBilinearRGBA(srcRGBA, w, h, sx, sy, rgba);
-        warpedGray[i] = 0.2126 * rgba[0] + 0.7152 * rgba[1] + 0.0722 * rgba[2];
+    // Create properly scaled per-level images.
+    const srcLevelCanvas = document.createElement('canvas');
+    srcLevelCanvas.width = w;
+    srcLevelCanvas.height = h;
+    const srcLevelCtx = srcLevelCanvas.getContext('2d', { willReadFrequently: true });
+    srcLevelCtx.imageSmoothingEnabled = true;
+    srcLevelCtx.imageSmoothingQuality = 'high';
+    srcLevelCtx.clearRect(0, 0, w, h);
+    srcLevelCtx.drawImage(srcCanvas, 0, 0, w, h);
+
+    const tgtLevelCanvas = document.createElement('canvas');
+    tgtLevelCanvas.width = w;
+    tgtLevelCanvas.height = h;
+    const tgtLevelCtx = tgtLevelCanvas.getContext('2d', { willReadFrequently: true });
+    tgtLevelCtx.imageSmoothingEnabled = true;
+    tgtLevelCtx.imageSmoothingQuality = 'high';
+    tgtLevelCtx.clearRect(0, 0, w, h);
+    tgtLevelCtx.drawImage(targetCanvas, 0, 0, w, h);
+
+    const srcImg = srcLevelCtx.getImageData(0, 0, w, h);
+    const tgtImg = tgtLevelCtx.getImageData(0, 0, w, h);
+    const srcRGBA = srcImg.data;
+
+    const tgtGray = imageDataToGray(tgtImg);
+    const { gx: tgtGx, gy: tgtGy } = computeGradient(tgtGray, w, h);
+
+    if (!dx || !dy) {
+      dx = new Float32Array(w * h);
+      dy = new Float32Array(w * h);
+    } else if (w !== prevW || h !== prevH) {
+      const up = upsampleDisplacement(dx, dy, prevW, prevH, w, h);
+      dx = up.dx;
+      dy = up.dy;
+    }
+    prevW = w;
+    prevH = h;
+
+    const warpedGray = new Float32Array(w * h);
+    // Ensure output context matches the level size.
+    if (outCtx && outCtx.canvas) {
+      if (outCtx.canvas.width !== w) outCtx.canvas.width = w;
+      if (outCtx.canvas.height !== h) outCtx.canvas.height = h;
+    }
+    const outImg = outCtx.createImageData(w, h);
+
+    function renderToOut() {
+      const globalFrac = smoothstep(stepsDone / totalSteps);
+      warpRGBA(srcRGBA, w, h, dx, dy, globalFrac, outImg);
+      outCtx.putImageData(outImg, 0, 0);
+      if (typeof drawScaleToOut === 'function') {
+        drawScaleToOut();
       }
     }
 
-    // Update displacement (demons update using target gradient)
-    for (let i = 0; i < dx.length; i++) {
-      const diff = tgtGray[i] - warpedGray[i];
-      const gxi = tgtGx[i];
-      const gyi = tgtGy[i];
-      const denom = gxi * gxi + gyi * gyi + diff * diff + eps;
-      dx[i] += stepSize * (diff * gxi) / denom;
-      dy[i] += stepSize * (diff * gyi) / denom;
-    }
+    // Render initial frame at this level
+    renderToOut();
 
-    // Smooth the displacement field to keep it coherent
-    smoothField(dx, w, h, blurR, blurPasses);
-    smoothField(dy, w, h, blurR, blurPasses);
+    // Larger step at coarse, smaller at fine
+    const levelStep = baseStep * (0.95 + 0.55 * (1 - levelIndex / Math.max(1, sizes.length - 1)));
+    const levelBlurPasses = clamp(blurPasses + (levelIndex === 0 ? 1 : 0), 1, 3);
 
-    if (iter % stride === 0 || iter === iters - 1) {
-      if (onStatus) onStatus(iter + 1, iters);
-      const applyFrac = (iter + 1) / iters;
-      renderToOut(applyFrac);
-      // Yield to the browser so the animation is visible
-      await new Promise((r) => requestAnimationFrame(r));
+    for (let iter = 0; iter < levelIters; iter++) {
+      if (cancel && cancel()) return 'cancelled';
+
+      // Build warped gray by sampling source at displaced coords.
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const i = y * w + x;
+          const sx = x + dx[i];
+          const sy = y + dy[i];
+          const rgba = [0, 0, 0, 255];
+          sampleBilinearRGBA(srcRGBA, w, h, sx, sy, rgba);
+          warpedGray[i] = 0.2126 * rgba[0] + 0.7152 * rgba[1] + 0.0722 * rgba[2];
+        }
+      }
+
+      // Demons update using target gradient.
+      for (let i = 0; i < dx.length; i++) {
+        const diff = tgtGray[i] - warpedGray[i];
+        const gxi = tgtGx[i];
+        const gyi = tgtGy[i];
+        const g2 = gxi * gxi + gyi * gyi;
+        if (g2 < 0.02) continue; // ignore near-flat regions
+        const denom = g2 + diff * diff + eps;
+        dx[i] += levelStep * (diff * gxi) / denom;
+        dy[i] += levelStep * (diff * gyi) / denom;
+      }
+
+      smoothField(dx, w, h, blurR, levelBlurPasses);
+      smoothField(dy, w, h, blurR, levelBlurPasses);
+
+      stepsDone++;
+
+      const shouldDraw = iter % stride === 0 || iter === levelIters - 1;
+      if (shouldDraw) {
+        if (onStatus) onStatus(stepsDone, totalSteps);
+        renderToOut();
+        await new Promise((r) => requestAnimationFrame(r));
+      }
     }
   }
 

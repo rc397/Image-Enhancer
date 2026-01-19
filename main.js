@@ -92,7 +92,7 @@ function drawCoverImageToCanvas(img, outCanvas) {
 
 function chooseWorkSize(dstW, dstH) {
   // Keep the math warp fast + visible.
-  const maxDim = 420;
+  const maxDim = 560;
   const s = Math.min(1, maxDim / Math.max(dstW, dstH));
   return {
     w: Math.max(64, Math.round(dstW * s)),
@@ -231,20 +231,21 @@ runBtn.addEventListener('click', async () => {
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(srcCanvas, 0, 0);
 
-  const iterations = Math.round(24 + 56 * strength);
+  const iterations = Math.round(90 + 120 * strength);
   const frameStride = 1;
 
   await animateDemonsRegistration({
-    srcCtx: srcWork.getContext('2d', { willReadFrequently: true }),
-    targetCtx: profWork.getContext('2d', { willReadFrequently: true }),
+    srcCanvas: srcWork,
+    targetCanvas: profWork,
     outCtx: workOutCtx,
     workWidth: work.w,
     workHeight: work.h,
     iterations,
-    step: 1.35,
+    step: 1.55,
     smoothRadius: 2,
-    smoothPasses: 1,
+    smoothPasses: 2,
     frameStride,
+    pyramidLevels: 3,
     cancel: isCancelled,
     onStatus: (i, n) => setStatus(`Enhancing (aligning pixels)... ${i}/${n}`),
     drawScaleToOut: () => {
