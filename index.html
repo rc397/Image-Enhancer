@@ -6,6 +6,7 @@
     <title>Image Enhancer</title>
     <link rel="stylesheet" href="clouds.css?v=3" />
     <link rel="stylesheet" href="clouds-interactive.css?v=1" />
+    <link rel="stylesheet" href="enhancements.css?v=1" />
     <link rel="stylesheet" href="style.css?v=4" />
   </head>
   <body>
@@ -13,7 +14,7 @@
     <main class="wrap">
       <header class="top">
         <h1>Image Enhancer</h1>
-        <p class="sub">High-quality browser upscaler + enhancement preview.</p>
+        <p class="sub">4K to 8k Image Upscaler</p>
       </header>
 
       <section class="panel">
@@ -38,6 +39,39 @@
             <output id="scaleOut">2×</output>
           </label>
 
+          <div class="enhancements" aria-label="Enhancements">
+            <div class="enhancementsHeader">
+              <div class="title">Enhancements</div>
+              <div class="meter">Intensity: <span id="enhanceMeter">0%</span></div>
+            </div>
+
+            <div class="enhanceRow">
+              <label for="sharpen">Sharpen</label>
+              <input id="sharpen" type="range" min="0" max="100" value="60" />
+              <output id="sharpenOut">60</output>
+            </div>
+
+            <div class="enhanceRow">
+              <label for="denoise">Denoise</label>
+              <input id="denoise" type="range" min="0" max="100" value="60" />
+              <output id="denoiseOut">60</output>
+            </div>
+
+            <div class="enhanceRow">
+              <label for="details">Details</label>
+              <input id="details" type="range" min="0" max="100" value="60" />
+              <output id="detailsOut">60</output>
+            </div>
+
+            <div class="enhanceRow">
+              <label for="restore">Restore</label>
+              <input id="restore" type="range" min="0" max="100" value="60" />
+              <output id="restoreOut">60</output>
+            </div>
+
+            <div class="smallNote">Higher values can increase processing time.</div>
+          </div>
+
           <div class="buttons">
             <button id="run" disabled>Enhance</button>
             <button id="download" disabled>Download PNG</button>
@@ -46,7 +80,7 @@
           <details class="help">
             <summary>How it works</summary>
             <ul>
-              <li>No AI. Everything runs locally in your browser.</li>
+              <li>By using complex mathematics (that I learnt FOR THIS PROJECT 😭)</li>
               <li>Choose an upscale factor and export as PNG.</li>
             </ul>
           </details>
@@ -57,17 +91,17 @@
             <canvas id="canvas"></canvas>
             <div id="status" class="status">Upload a source image to begin.</div>
           </div>
-          <div class="hint">Tip: for a built-in profile on GitHub Pages, add <code>assets/default-template.webp</code>.</div>
+          <div class="hint">Have some fun with this project <code>Hehehe</code>.</div>
         </div>
       </section>
 
       <footer class="footer">
-        <span>Local-only. Your images never leave the browser.</span>
+        <span>This image upscaler is experimental and may have some errors/limitations, if any PLEASE PLEASE PLEASE comment it under my project and tell me!!!</span>
       </footer>
     </main>
 
     <script type="module" src="clouds.js?v=3"></script>
     <script type="module" src="clouds-interactive.js?v=1"></script>
-    <script type="module" src="main.js?v=4"></script>
+    <script type="module" src="main.js?v=5"></script>
   </body>
 </html>

@@ -1,4 +1,11 @@
 import { computeOutputSize, fitCover } from './upscale.js';
+import {
+  applyDeterministicResample,
+  applyDeterministicTileWarp,
+  computeEnhanceStrength,
+  readEnhanceParams,
+  updateEnhanceLabels,
+} from './enhancements.js';
 
 const inputFile = document.getElementById('inputFile');
 const templateFile = document.getElementById('templateFile');
@@ -12,6 +19,16 @@ const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
 let inputImg = null;
 let templateImg = null;
+
+function wireEnhancementsUI() {
+  const ids = ['sharpen', 'denoise', 'details', 'restore'];
+  for (const id of ids) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.addEventListener('input', () => updateEnhanceLabels());
+  }
+  updateEnhanceLabels();
+}
 
 function setStatus(text) {
   statusEl.textContent = text;
@@ -56,6 +73,20 @@ function updateScaleLabel() {
   if (scaleOut) scaleOut.textContent = `${v}×`;
 }
 
+function drawCoverImageToCanvas(img, outCanvas) {
+  const outCtx = outCanvas.getContext('2d', { willReadFrequently: true });
+  const w = outCanvas.width;
+  const h = outCanvas.height;
+  const iW = img.naturalWidth || img.width;
+  const iH = img.naturalHeight || img.height;
+  const r = fitCover(iW, iH, w, h);
+  outCtx.clearRect(0, 0, w, h);
+  outCtx.imageSmoothingEnabled = true;
+  outCtx.imageSmoothingQuality = 'high';
+  outCtx.drawImage(img, r.x, r.y, r.w, r.h);
+  return outCtx;
+}
+
 async function refreshButtons() {
   runBtn.disabled = !inputImg;
   downloadBtn.disabled = true;
@@ -63,6 +94,7 @@ async function refreshButtons() {
 
 scaleEl?.addEventListener('change', updateScaleLabel);
 updateScaleLabel();
+wireEnhancementsUI();
 
 inputFile.addEventListener('change', async () => {
   const file = inputFile.files?.[0];
@@ -127,15 +159,48 @@ runBtn.addEventListener('click', async () => {
   canvas.width = width;
   canvas.height = height;
 
-  // Draw the profile image as a cover-fill into the output canvas.
-  const pW = templateImg.naturalWidth || templateImg.width;
-  const pH = templateImg.naturalHeight || templateImg.height;
-  const r = fitCover(pW, pH, width, height);
+  const params = readEnhanceParams();
+  const strength = computeEnhanceStrength(params);
 
-  ctx.clearRect(0, 0, width, height);
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(templateImg, r.x, r.y, r.w, r.h);
+  const srcCanvas = document.createElement('canvas');
+  srcCanvas.width = width;
+  srcCanvas.height = height;
+  drawCoverImageToCanvas(inputImg, srcCanvas);
+
+  const profCanvas = document.createElement('canvas');
+  profCanvas.width = width;
+  profCanvas.height = height;
+  drawCoverImageToCanvas(templateImg, profCanvas);
+
+  const pixels = width * height;
+  const perPixelThreshold = 4_000_000; // keep UI responsive on large upscales
+
+  if (pixels <= perPixelThreshold) {
+    const srcCtx = srcCanvas.getContext('2d', { willReadFrequently: true });
+    const profCtx = profCanvas.getContext('2d', { willReadFrequently: true });
+    const srcImgData = srcCtx.getImageData(0, 0, width, height);
+    const profImgData = profCtx.getImageData(0, 0, width, height);
+
+    const out = applyDeterministicResample({
+      srcData: srcImgData.data,
+      profData: profImgData.data,
+      width,
+      height,
+      strength,
+      displace: 1,
+    });
+
+    ctx.putImageData(out, 0, 0);
+  } else {
+    applyDeterministicTileWarp({
+      ctx,
+      srcCanvas,
+      profileCanvas: profCanvas,
+      width,
+      height,
+      strength,
+    });
+  }
 
   downloadBtn.disabled = false;
   setStatus('Done.');
