@@ -3,38 +3,40 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Image Enhancer (Obama Mode)</title>
+    <title>Image Enhancer</title>
+    <link rel="stylesheet" href="clouds.css" />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
+    <div id="cloudLayer" aria-hidden="true"></div>
     <main class="wrap">
       <header class="top">
         <h1>Image Enhancer</h1>
-        <p class="sub">Now featuring: <strong>Obama Mode</strong> (no AI, just canvas crimes).</p>
+        <p class="sub">Bright, glassy, in-browser image transform demo.</p>
       </header>
 
       <section class="panel">
         <div class="controls">
           <label class="file">
-            <span>Input image</span>
+            <span>Source image</span>
             <input id="inputFile" type="file" accept="image/*" />
           </label>
 
           <label class="file">
-            <span>Obama template (optional)</span>
+            <span>Template image (optional)</span>
             <input id="templateFile" type="file" accept="image/*" />
           </label>
 
           <div class="buttons">
-            <button id="run" disabled>Just Obama</button>
+            <button id="run" disabled>Apply</button>
             <button id="download" disabled>Download PNG</button>
           </div>
 
           <details class="help">
             <summary>How it works</summary>
             <ul>
-              <li>No AI. We resize the Obama template to your input image size and output that.</li>
-              <li>Your uploaded input image is only used to choose the output dimensions.</li>
+              <li>No AI. We resize the template to your source image size and output that.</li>
+              <li>Your source image is only used to choose output dimensions.</li>
             </ul>
           </details>
         </div>
@@ -44,7 +46,7 @@
             <canvas id="canvas"></canvas>
             <div id="status" class="status">Load an input image to begin.</div>
           </div>
-          <div class="hint">Tip: upload a template in the UI, or (when hosted) add <code>assets/obama-template.webp</code> as the default.</div>
+          <div class="hint">Tip: upload a template in the UI, or (when hosted) add <code>assets/default-template.webp</code> as the default.</div>
         </div>
       </section>
 
@@ -53,6 +55,7 @@
       </footer>
     </main>
 
+    <script type="module" src="clouds.js"></script>
     <script type="module" src="main.js"></script>
   </body>
 </html>

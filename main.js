@@ -38,9 +38,9 @@ async function loadOptionalDefaultTemplate() {
     return;
   }
   try {
-    const img = await loadImageFromURL('assets/obama-template.webp');
+    const img = await loadImageFromURL('assets/default-template.webp');
     templateImg = img;
-    setStatus('Default Obama template loaded.');
+    setStatus('Default template loaded.');
   } catch {
     // no default; that's fine
   }
@@ -108,7 +108,7 @@ function drawImageToSizeCover(img, width, height) {
   return { canvas: off, ctx: c };
 }
 
-function obamaFy(templateData, width, height) {
+function renderTemplate(templateData, width, height) {
   // Hard replace: output is just the template pixels.
   const out = new ImageData(width, height);
   out.data.set(templateData.data);
@@ -129,7 +129,7 @@ inputFile.addEventListener('change', async () => {
     const url = await readFileAsDataURL(file);
     inputImg = await loadImageFromURL(url);
     await refreshButtons();
-    setStatus('Input loaded. Click Obama-fy.');
+    setStatus('Source loaded. Click Apply.');
   } catch (e) {
     console.error(e);
     setStatus('Failed to load input.');
@@ -167,13 +167,13 @@ runBtn.addEventListener('click', async () => {
 
   if (!templateImg) {
     const extra = location.protocol === 'file:'
-      ? ' (Tip: if you want a default template without uploading, host this folder (e.g. GitHub Pages) and add assets/obama-template.webp)'
+      ? ' (Tip: if you want a default template without uploading, host this folder (e.g. GitHub Pages) and add assets/default-template.webp)'
       : '';
-    setStatus('No Obama template found. Upload one in the UI or add assets/obama-template.webp' + extra);
+    setStatus('No template found. Upload one in the UI or add assets/default-template.webp' + extra);
     return;
   }
 
-  setStatus('Making it Obama...');
+  setStatus('Applying...');
 
   // target size: preserve input, but cap for performance
   const maxDim = 1400;
@@ -190,7 +190,7 @@ runBtn.addEventListener('click', async () => {
   const templOff = drawImageToSizeCover(templateImg, width, height);
   const templData = templOff.ctx.getImageData(0, 0, width, height);
 
-  const out = obamaFy(templData, width, height);
+  const out = renderTemplate(templData, width, height);
   ctx.putImageData(out, 0, 0);
 
   downloadBtn.disabled = false;
@@ -199,7 +199,7 @@ runBtn.addEventListener('click', async () => {
 
 downloadBtn.addEventListener('click', () => {
   const a = document.createElement('a');
-  a.download = 'obama-fied.png';
+  a.download = 'image-enhanced.png';
   a.href = canvas.toDataURL('image/png');
   a.click();
 });

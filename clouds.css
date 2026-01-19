@@ -1,0 +1,82 @@
+#cloudLayer {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.cloud {
+  position: absolute;
+  left: -30vmax;
+  top: var(--y, 20vh);
+  width: var(--w, 320px);
+  height: calc(var(--w, 320px) * 0.42);
+  opacity: var(--o, 0.55);
+  filter: blur(var(--blur, 1px));
+  transform: translate3d(0, 0, 0);
+  animation:
+    cloud-drift var(--dur, 70s) linear infinite,
+    cloud-bob calc(var(--dur, 70s) / 6) ease-in-out infinite;
+}
+
+.cloud::before,
+.cloud::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.92),
+    rgba(255, 255, 255, 0.64)
+  );
+  box-shadow:
+    0 16px 44px rgba(28, 35, 90, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.cloud::before {
+  transform: translateX(-10%) translateY(6%) scale(1.06);
+  opacity: 0.85;
+}
+
+.cloud::after {
+  /* Extra puff cluster */
+  width: 46%;
+  height: 86%;
+  left: 10%;
+  top: -34%;
+  border-radius: 999px;
+  opacity: 0.9;
+}
+
+.cloud .puff {
+  position: absolute;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 10px 26px rgba(28, 35, 90, 0.06);
+  inset: auto;
+}
+
+@keyframes cloud-drift {
+  from { transform: translate3d(-30vmax, 0, 0); }
+  to   { transform: translate3d(130vmax, 0, 0); }
+}
+
+@keyframes cloud-bob {
+  0%, 100% { margin-top: 0px; }
+  50% { margin-top: 10px; }
+}
+
+/* Subtle "halo" fog layer to make it feel less empty */
+#cloudLayer::after {
+  content: '';
+  position: absolute;
+  inset: -20vh -20vw;
+  background:
+    radial-gradient(900px 520px at 20% 0%, rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0.0) 60%),
+    radial-gradient(900px 520px at 85% 15%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.0) 62%),
+    radial-gradient(900px 520px at 50% 110%, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.0) 60%);
+  opacity: 0.55;
+}
