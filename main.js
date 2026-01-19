@@ -92,7 +92,7 @@ function drawCoverImageToCanvas(img, outCanvas) {
 
 function chooseWorkSize(dstW, dstH) {
   // Keep the math warp fast + visible.
-  const maxDim = 520;
+  const maxDim = 420;
   const s = Math.min(1, maxDim / Math.max(dstW, dstH));
   return {
     w: Math.max(64, Math.round(dstW * s)),
@@ -203,7 +203,7 @@ runBtn.addEventListener('click', async () => {
   drawCoverImageToCanvas(templateImg, profCanvas);
 
   const pixels = width * height;
-  const perPixelThreshold = 4_000_000; // keep UI responsive on large upscales
+  const perPixelThreshold = 4_000_000; // (kept for future; not used in registration path)
 
   // 1) Animated preview: mathematical pixel motion toward the profile.
   // Use a working resolution for speed, but render scaled to the output canvas.
@@ -225,12 +225,14 @@ runBtn.addEventListener('click', async () => {
   profWork.height = work.h;
   drawCoverImageToCanvas(templateImg, profWork);
 
+  // Ensure the output shows the original immediately (no blank frame).
   ctx.clearRect(0, 0, width, height);
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(srcCanvas, 0, 0);
 
-  const iterations = Math.round(10 + 40 * strength);
-  const frameStride = strength > 0.6 ? 1 : 2;
+  const iterations = Math.round(24 + 56 * strength);
+  const frameStride = 1;
 
   await animateDemonsRegistration({
     srcCtx: srcWork.getContext('2d', { willReadFrequently: true }),
@@ -253,34 +255,7 @@ runBtn.addEventListener('click', async () => {
 
   if (isCancelled()) return;
 
-  // 2) Finalize: for smaller outputs, compute the higher-quality per-pixel result once.
-  if (pixels <= perPixelThreshold) {
-    setStatus('Finalizing...');
-    const srcCtx = srcCanvas.getContext('2d', { willReadFrequently: true });
-    const profCtx = profCanvas.getContext('2d', { willReadFrequently: true });
-    const srcImgData = srcCtx.getImageData(0, 0, width, height);
-    const profImgData = profCtx.getImageData(0, 0, width, height);
-
-    const out = applyDeterministicResample({
-      srcData: srcImgData.data,
-      profData: profImgData.data,
-      width,
-      height,
-      strength,
-      displace: 1,
-    });
-    ctx.putImageData(out, 0, 0);
-  } else {
-    // For huge outputs, keep the aligned preview but ensure we converge fully.
-    applyDeterministicTileWarp({
-      ctx,
-      srcCanvas,
-      profileCanvas: profCanvas,
-      width,
-      height,
-      strength,
-    });
-  }
+  // 2) No final snap step — keep the last animated frame as the result.
 
   downloadBtn.disabled = false;
   setStatus('Done.');

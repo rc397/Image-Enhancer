@@ -126,15 +126,16 @@ function smoothField(field, w, h, radius, passes) {
   }
 }
 
-function warpRGBA(srcRGBA, w, h, dx, dy, outImgData) {
+function warpRGBA(srcRGBA, w, h, dx, dy, applyFrac, outImgData) {
   const out = outImgData.data;
   const rgba = [0, 0, 0, 255];
+  const f = clamp(applyFrac, 0, 1);
 
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const i = y * w + x;
-      const sx = x + dx[i];
-      const sy = y + dy[i];
+      const sx = x + dx[i] * f;
+      const sy = y + dy[i] * f;
       sampleBilinearRGBA(srcRGBA, w, h, sx, sy, rgba);
       const o = i * 4;
       out[o] = clamp(Math.round(rgba[0]), 0, 255);
@@ -186,9 +187,10 @@ export async function animateDemonsRegistration({
   const warpedGray = new Float32Array(w * h);
   const outImg = outCtx.createImageData(w, h);
 
-  function renderToOut() {
-    // Warp RGBA using current displacement
-    warpRGBA(srcRGBA, w, h, dx, dy, outImg);
+  function renderToOut(applyFrac) {
+    // Warp RGBA using a fraction of the displacement field.
+    // This makes pixels visibly travel over time instead of snapping.
+    warpRGBA(srcRGBA, w, h, dx, dy, applyFrac, outImg);
     outCtx.putImageData(outImg, 0, 0);
 
     // If the caller wants us to scale this working canvas to a bigger output,
@@ -199,7 +201,7 @@ export async function animateDemonsRegistration({
   }
 
   // Initial: show original
-  renderToOut();
+  renderToOut(0);
 
   const eps = 1e-3;
   for (let iter = 0; iter < iters; iter++) {
@@ -236,7 +238,8 @@ export async function animateDemonsRegistration({
 
     if (iter % stride === 0 || iter === iters - 1) {
       if (onStatus) onStatus(iter + 1, iters);
-      renderToOut();
+      const applyFrac = (iter + 1) / iters;
+      renderToOut(applyFrac);
       // Yield to the browser so the animation is visible
       await new Promise((r) => requestAnimationFrame(r));
     }
