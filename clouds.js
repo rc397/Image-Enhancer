@@ -23,11 +23,13 @@ function makeCloud() {
   const cloud = document.createElement('div');
   cloud.className = 'cloud';
 
-  const w = rand(180, 420);
-  const y = rand(6, 52);
-  const o = rand(0.35, 0.85);
-  const blur = rand(0.0, 1.2);
-  const dur = rand(42, 120);
+  const isBottom = Math.random() < 0.38;
+
+  const w = isBottom ? rand(260, 620) : rand(180, 460);
+  const y = isBottom ? rand(62, 95) : rand(4, 70);
+  const o = isBottom ? rand(0.22, 0.55) : rand(0.32, 0.80);
+  const blur = isBottom ? rand(0.8, 2.6) : rand(0.0, 1.2);
+  const dur = isBottom ? rand(70, 160) : rand(42, 120);
   const delay = rand(-dur, 0);
 
   cloud.style.setProperty('--w', `${w}px`);
