@@ -7,6 +7,7 @@ import {
   updateEnhanceLabels,
 } from './enhancements.js';
 import { animateProgress } from './animation.js';
+import { animateDemonsRegistration } from './registration.js';
 
 const inputFile = document.getElementById('inputFile');
 const templateFile = document.getElementById('templateFile');
@@ -89,6 +90,16 @@ function drawCoverImageToCanvas(img, outCanvas) {
   return outCtx;
 }
 
+function chooseWorkSize(dstW, dstH) {
+  // Keep the math warp fast + visible.
+  const maxDim = 520;
+  const s = Math.min(1, maxDim / Math.max(dstW, dstH));
+  return {
+    w: Math.max(64, Math.round(dstW * s)),
+    h: Math.max(64, Math.round(dstH * s)),
+  };
+}
+
 async function refreshButtons() {
   runBtn.disabled = !inputImg;
   downloadBtn.disabled = true;
@@ -107,6 +118,17 @@ inputFile.addEventListener('change', async () => {
     const url = await readFileAsDataURL(file);
     inputImg = await loadImageFromURL(url);
     await refreshButtons();
+
+    // Show the original immediately in the preview area.
+    const srcW = inputImg.naturalWidth || inputImg.width;
+    const srcH = inputImg.naturalHeight || inputImg.height;
+    const factor = Number(scaleEl?.value || 2);
+    const { width, height } = computeOutputSize(srcW, srcH, factor);
+    canvas.width = width;
+    canvas.height = height;
+    ctx.clearRect(0, 0, width, height);
+    drawCoverImageToCanvas(inputImg, canvas);
+
     setStatus('Ready.');
   } catch (e) {
     console.error(e);
@@ -183,22 +205,49 @@ runBtn.addEventListener('click', async () => {
   const pixels = width * height;
   const perPixelThreshold = 4_000_000; // keep UI responsive on large upscales
 
-  // 1) Animated preview: always show original first, then morph.
-  // Use the fast tile-warp path during animation for responsiveness.
-  setStatus('Enhancing (preview)...');
-  await animateProgress({
-    durationMs: 1100,
-    isCancelled,
-    onFrame: (t) => {
-      const s = strength * t;
-      applyDeterministicTileWarp({
-        ctx,
-        srcCanvas,
-        profileCanvas: profCanvas,
-        width,
-        height,
-        strength: s,
-      });
+  // 1) Animated preview: mathematical pixel motion toward the profile.
+  // Use a working resolution for speed, but render scaled to the output canvas.
+  setStatus('Enhancing (aligning pixels)...');
+
+  const work = chooseWorkSize(width, height);
+  const workCanvas = document.createElement('canvas');
+  workCanvas.width = work.w;
+  workCanvas.height = work.h;
+  const workOutCtx = workCanvas.getContext('2d', { willReadFrequently: true });
+
+  const srcWork = document.createElement('canvas');
+  srcWork.width = work.w;
+  srcWork.height = work.h;
+  drawCoverImageToCanvas(inputImg, srcWork);
+
+  const profWork = document.createElement('canvas');
+  profWork.width = work.w;
+  profWork.height = work.h;
+  drawCoverImageToCanvas(templateImg, profWork);
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
+  const iterations = Math.round(10 + 40 * strength);
+  const frameStride = strength > 0.6 ? 1 : 2;
+
+  await animateDemonsRegistration({
+    srcCtx: srcWork.getContext('2d', { willReadFrequently: true }),
+    targetCtx: profWork.getContext('2d', { willReadFrequently: true }),
+    outCtx: workOutCtx,
+    workWidth: work.w,
+    workHeight: work.h,
+    iterations,
+    step: 1.35,
+    smoothRadius: 2,
+    smoothPasses: 1,
+    frameStride,
+    cancel: isCancelled,
+    onStatus: (i, n) => setStatus(`Enhancing (aligning pixels)... ${i}/${n}`),
+    drawScaleToOut: () => {
+      ctx.clearRect(0, 0, width, height);
+      ctx.drawImage(workCanvas, 0, 0, width, height);
     },
   });
 
@@ -221,6 +270,16 @@ runBtn.addEventListener('click', async () => {
       displace: 1,
     });
     ctx.putImageData(out, 0, 0);
+  } else {
+    // For huge outputs, keep the aligned preview but ensure we converge fully.
+    applyDeterministicTileWarp({
+      ctx,
+      srcCanvas,
+      profileCanvas: profCanvas,
+      width,
+      height,
+      strength,
+    });
   }
 
   downloadBtn.disabled = false;
