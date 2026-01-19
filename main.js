@@ -1,18 +1,9 @@
 import { computeOutputSize, fitCover } from './upscale.js';
-import {
-  applyDeterministicResample,
-  applyDeterministicTileWarp,
-  computeEnhanceStrength,
-  readEnhanceParams,
-  updateEnhanceLabels,
-} from './enhancements.js';
-import { animateProgress } from './animation.js';
 import { animateDemonsRegistration } from './registration.js';
+import { getWarpBudget, wireWarpQualityUI } from './warp-quality.js';
 
 const inputFile = document.getElementById('inputFile');
 const templateFile = document.getElementById('templateFile');
-const scaleEl = document.getElementById('scale');
-const scaleOut = document.getElementById('scaleOut');
 const runBtn = document.getElementById('run');
 const downloadBtn = document.getElementById('download');
 const statusEl = document.getElementById('status');
@@ -22,16 +13,6 @@ const ctx = canvas.getContext('2d', { willReadFrequently: true });
 let inputImg = null;
 let templateImg = null;
 let enhanceRunId = 0;
-
-function wireEnhancementsUI() {
-  const ids = ['sharpen', 'denoise', 'details', 'restore'];
-  for (const id of ids) {
-    const el = document.getElementById(id);
-    if (!el) continue;
-    el.addEventListener('input', () => updateEnhanceLabels());
-  }
-  updateEnhanceLabels();
-}
 
 function setStatus(text) {
   statusEl.textContent = text;
@@ -70,12 +51,6 @@ async function loadOptionalDefaultTemplate() {
   }
 }
 
-function updateScaleLabel() {
-  const v = Number(scaleEl?.value || 2);
-  if (scaleOut) scaleOut.value = `${v}×`;
-  if (scaleOut) scaleOut.textContent = `${v}×`;
-}
-
 function drawCoverImageToCanvas(img, outCanvas) {
   const outCtx = outCanvas.getContext('2d', { willReadFrequently: true });
   const w = outCanvas.width;
@@ -90,14 +65,28 @@ function drawCoverImageToCanvas(img, outCanvas) {
   return outCtx;
 }
 
-function chooseWorkSize(dstW, dstH) {
-  // Keep the math warp fast + visible.
-  const maxDim = 560;
-  const s = Math.min(1, maxDim / Math.max(dstW, dstH));
-  return {
-    w: Math.max(64, Math.round(dstW * s)),
-    h: Math.max(64, Math.round(dstH * s)),
-  };
+function chooseWorkSize(dstW, dstH, maxPixels) {
+  // Choose a working resolution based on a pixel budget.
+  const areaDst = Math.max(1, Math.floor(dstW * dstH));
+  const area = Math.min(areaDst, Math.max(64 * 64, Math.floor(maxPixels)));
+  const ar = dstW / Math.max(1, dstH);
+
+  let w = Math.round(Math.sqrt(area * ar));
+  let h = Math.round(w / ar);
+
+  if (w > dstW) {
+    w = dstW;
+    h = Math.round(w / ar);
+  }
+  if (h > dstH) {
+    h = dstH;
+    w = Math.round(h * ar);
+  }
+
+  w = Math.max(64, Math.min(dstW, w));
+  h = Math.max(64, Math.min(dstH, h));
+
+  return { w, h };
 }
 
 async function refreshButtons() {
@@ -105,9 +94,7 @@ async function refreshButtons() {
   downloadBtn.disabled = true;
 }
 
-scaleEl?.addEventListener('change', updateScaleLabel);
-updateScaleLabel();
-wireEnhancementsUI();
+wireWarpQualityUI();
 
 inputFile.addEventListener('change', async () => {
   const file = inputFile.files?.[0];
@@ -122,8 +109,7 @@ inputFile.addEventListener('change', async () => {
     // Show the original immediately in the preview area.
     const srcW = inputImg.naturalWidth || inputImg.width;
     const srcH = inputImg.naturalHeight || inputImg.height;
-    const factor = Number(scaleEl?.value || 2);
-    const { width, height } = computeOutputSize(srcW, srcH, factor);
+    const { width, height } = computeOutputSize(srcW, srcH, 1);
     canvas.width = width;
     canvas.height = height;
     ctx.clearRect(0, 0, width, height);
@@ -183,14 +169,12 @@ runBtn.addEventListener('click', async () => {
 
   const srcW = inputImg.naturalWidth || inputImg.width;
   const srcH = inputImg.naturalHeight || inputImg.height;
-  const factor = Number(scaleEl?.value || 2);
-  const { width, height } = computeOutputSize(srcW, srcH, factor);
+  const { width, height } = computeOutputSize(srcW, srcH, 1);
 
   canvas.width = width;
   canvas.height = height;
 
-  const params = readEnhanceParams();
-  const strength = computeEnhanceStrength(params);
+  const budget = getWarpBudget();
 
   const srcCanvas = document.createElement('canvas');
   srcCanvas.width = width;
@@ -202,14 +186,11 @@ runBtn.addEventListener('click', async () => {
   profCanvas.height = height;
   drawCoverImageToCanvas(templateImg, profCanvas);
 
-  const pixels = width * height;
-  const perPixelThreshold = 4_000_000; // (kept for future; not used in registration path)
-
   // 1) Animated preview: mathematical pixel motion toward the profile.
   // Use a working resolution for speed, but render scaled to the output canvas.
   setStatus('Enhancing (aligning pixels)...');
 
-  const work = chooseWorkSize(width, height);
+  const work = chooseWorkSize(width, height, budget.maxPixels);
   const workCanvas = document.createElement('canvas');
   workCanvas.width = work.w;
   workCanvas.height = work.h;
@@ -231,7 +212,6 @@ runBtn.addEventListener('click', async () => {
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(srcCanvas, 0, 0);
 
-  const iterations = Math.round(90 + 120 * strength);
   const frameStride = 1;
 
   await animateDemonsRegistration({
@@ -240,12 +220,12 @@ runBtn.addEventListener('click', async () => {
     outCtx: workOutCtx,
     workWidth: work.w,
     workHeight: work.h,
-    iterations,
-    step: 1.55,
+    iterations: budget.iterations,
+    step: budget.step,
     smoothRadius: 2,
-    smoothPasses: 2,
+    smoothPasses: budget.smoothPasses,
     frameStride,
-    pyramidLevels: 3,
+    pyramidLevels: budget.pyramidLevels,
     cancel: isCancelled,
     onStatus: (i, n) => setStatus(`Enhancing (aligning pixels)... ${i}/${n}`),
     drawScaleToOut: () => {

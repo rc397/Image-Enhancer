@@ -6,7 +6,7 @@
     <title>Image Enhancer</title>
     <link rel="stylesheet" href="clouds.css?v=3" />
     <link rel="stylesheet" href="clouds-interactive.css?v=1" />
-    <link rel="stylesheet" href="enhancements.css?v=1" />
+    <link rel="stylesheet" href="warp-quality.css?v=1" />
     <link rel="stylesheet" href="style.css?v=4" />
   </head>
   <body>
@@ -28,48 +28,23 @@
             <span>Enhancement profile (optional)</span>
             <input id="templateFile" type="file" accept="image/*" />
           </label>
-          
-          <label class="row">
-            <span>Upscale</span>
-            <select id="scale">
-              <option value="1">1× (original)</option>
-              <option value="2" selected>2× (up to 8K)</option>
-              <option value="4">4× (very large)</option>
-            </select>
-            <output id="scaleOut">2×</output>
-          </label>
 
-          <div class="enhancements" aria-label="Enhancements">
-            <div class="enhancementsHeader">
-              <div class="title">Enhancements</div>
-              <div class="meter">Intensity: <span id="enhanceMeter">0%</span></div>
+          <div class="warpQuality" aria-label="Pixel boost">
+            <div class="warpQualityHeader">
+              <div class="title">Pixel boost</div>
+              <div class="meter">Selected: <span id="warpPixelsOut">1000</span></div>
             </div>
 
-            <div class="enhanceRow">
-              <label for="sharpen">Sharpen</label>
-              <input id="sharpen" type="range" min="0" max="100" value="60" />
-              <output id="sharpenOut">60</output>
+            <div class="warpGrid" role="radiogroup" aria-label="Add pixels">
+              <button class="warpOption" type="button" data-warp-pixels="211" aria-pressed="false">+211<small>fast</small></button>
+              <button class="warpOption" type="button" data-warp-pixels="560" aria-pressed="false">+560<small>balanced</small></button>
+              <button class="warpOption" type="button" data-warp-pixels="1000" aria-pressed="false">+1000<small>sharp</small></button>
+              <button class="warpOption" type="button" data-warp-pixels="4000" aria-pressed="false">+4000<small>very sharp</small></button>
+              <button class="warpOption" type="button" data-warp-pixels="8000" aria-pressed="false">+8000<small>extreme</small></button>
+              <button class="warpOption" type="button" data-warp-pixels="12000" aria-pressed="false">+12000<small>max</small></button>
             </div>
 
-            <div class="enhanceRow">
-              <label for="denoise">Denoise</label>
-              <input id="denoise" type="range" min="0" max="100" value="60" />
-              <output id="denoiseOut">60</output>
-            </div>
-
-            <div class="enhanceRow">
-              <label for="details">Details</label>
-              <input id="details" type="range" min="0" max="100" value="60" />
-              <output id="detailsOut">60</output>
-            </div>
-
-            <div class="enhanceRow">
-              <label for="restore">Restore</label>
-              <input id="restore" type="range" min="0" max="100" value="60" />
-              <output id="restoreOut">60</output>
-            </div>
-
-            <div class="smallNote">Higher values can increase processing time.</div>
+            <div class="warpNote">This only changes internal alignment resolution (output size stays the same).</div>
           </div>
 
           <div class="buttons">
@@ -81,7 +56,7 @@
             <summary>How it works</summary>
             <ul>
               <li>By using complex mathematics (that I learnt FOR THIS PROJECT 😭)</li>
-              <li>Choose an upscale factor and export as PNG.</li>
+              <li>Choose a pixel boost level and export as PNG.</li>
             </ul>
           </details>
         </div>
@@ -102,6 +77,6 @@
 
     <script type="module" src="clouds.js?v=3"></script>
     <script type="module" src="clouds-interactive.js?v=1"></script>
-    <script type="module" src="main.js?v=9"></script>
+    <script type="module" src="main.js?v=10"></script>
   </body>
 </html>
