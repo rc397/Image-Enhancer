@@ -214,6 +214,7 @@ runBtn.addEventListener('click', async () => {
     },
     drawScaleToOut: () => {
       ctx.clearRect(0, 0, width, height);
+      ctx.imageSmoothingEnabled = false;
       ctx.drawImage(workCanvas, 0, 0, width, height);
     },
   });

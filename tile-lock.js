@@ -11,6 +11,17 @@ function easeInOut(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
+function hash32(x) {
+  // Deterministic integer hash
+  x |= 0;
+  x ^= x >>> 16;
+  x = Math.imul(x, 0x7feb352d);
+  x ^= x >>> 15;
+  x = Math.imul(x, 0x846ca68b);
+  x ^= x >>> 16;
+  return x >>> 0;
+}
+
 function toGray(imgData) {
   const { data, width, height } = imgData;
   const gray = new Float32Array(width * height);
@@ -59,18 +70,22 @@ function scorePatch(srcGray, tgtGray, w, h, sx, sy, tx, ty, tile, pts) {
 }
 
 function chooseTileParams(sampleCount) {
-  const min = 211;
-  const max = 12000;
-  const t = clamp((sampleCount - min) / (max - min), 0, 1);
+  // Explicit ladder so max is ALWAYS pixels (tile=1).
+  // These correspond to the UI buttons.
+  const sc = Number(sampleCount) || 211;
+  let tile = 24;
+  if (sc >= 12000) tile = 1;
+  else if (sc >= 8000) tile = 3;
+  else if (sc >= 4000) tile = 6;
+  else if (sc >= 1000) tile = 10;
+  else if (sc >= 560) tile = 16;
 
-  // Smaller tiles at higher settings = more visible “puzzle” motion.
-  // Highest setting becomes pixel-level.
-  const tile = clamp(Math.round(24 - 23 * t), 1, 24);
-  const frames = Math.round(70 + 90 * t);
+  const t = clamp((sc - 211) / (12000 - 211), 0, 1);
+  const frames = Math.round(80 + 120 * t);
 
   // Movement aggressiveness
-  const moveAlpha = lerp(0.22, 0.75, t);
-  const snapDist = lerp(1.5, 3.0, t);
+  const moveAlpha = lerp(0.28, 0.82, t);
+  const snapDist = lerp(1.0, 2.5, t);
 
   return { tile, frames, moveAlpha, snapDist, t };
 }
@@ -177,15 +192,23 @@ function renderPixelsFrame({ outCtx, w, h, srcRGBA32, srcOrder, tgtOrder, t }) {
   const img = outCtx.createImageData(w, h);
   const out32 = new Uint32Array(img.data.buffer);
 
-  // Fill alpha as opaque background by copying colors.
-  for (let i = 0; i < out32.length; i++) out32[i] = 0xFFFFFFFF;
+  // Transparent background so movement is obvious.
+  for (let i = 0; i < out32.length; i++) out32[i] = 0;
 
-  for (let k = 0; k < srcOrder.length; k++) {
+  // Draw only a growing prefix to keep frames fast (and clearly animated).
+  const total = srcOrder.length;
+  const drawCount = Math.max(1, Math.min(total, Math.round(total * tt)));
+  const n = w * h;
+
+  for (let k = 0; k < drawCount; k++) {
     const s = srcOrder[k];
     const d = tgtOrder[k];
 
-    const sx = s % w;
-    const sy = (s / w) | 0;
+    // Scatter start: start position comes from a deterministic permutation.
+    const startPos = tgtOrder[(k * 97) % total];
+
+    const sx = startPos % w;
+    const sy = (startPos / w) | 0;
     const dx = d % w;
     const dy = (d / w) | 0;
 
@@ -236,7 +259,15 @@ export async function animateTileLock({
       if (cancel && cancel()) return 'cancelled';
       const pct = Math.min(100, Math.max(0, Math.round((f / Math.max(1, frames - 1)) * 100)));
       if (onStatus) onStatus(pct, 0, srcOrder.length);
-      renderPixelsFrame({ outCtx, w, h, srcRGBA32, srcOrder, tgtOrder, t: f / Math.max(1, frames - 1) });
+      renderPixelsFrame({
+        outCtx,
+        w,
+        h,
+        srcRGBA32,
+        srcOrder,
+        tgtOrder,
+        t: f / Math.max(1, frames - 1),
+      });
       if (typeof drawScaleToOut === 'function') drawScaleToOut();
       await new Promise((r) => requestAnimationFrame(r));
     }
@@ -274,6 +305,22 @@ export async function animateTileLock({
     tileObj.sy = sy;
     tileObj.gx = dx;
     tileObj.gy = dy;
+  }
+
+  // Scatter start: scramble starting positions (deterministic), then fly into place.
+  const perm = new Uint32Array(tiles.length);
+  for (let i = 0; i < perm.length; i++) perm[i] = i;
+  const permArr = Array.from(perm);
+  permArr.sort((a, b) => (hash32(a * 65537) - hash32(b * 65537)));
+  for (let i = 0; i < tiles.length; i++) {
+    const srcI = permArr[i];
+    const dstI = i;
+    const p = tiles[srcI];
+    const startX = (dstI % tilesX) * tile;
+    const startY = ((dstI / tilesX) | 0) * tile;
+    p.x = startX;
+    p.y = startY;
+    p.locked = false;
   }
 
   // Animate movement and locking.
