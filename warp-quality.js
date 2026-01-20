@@ -59,7 +59,7 @@ export function getWarpBudget() {
 
   const pyramidLevels = t > 0.82 ? 4 : 3;
   const iterations = Math.round(90 + 130 * t);
-  const step = 1.2 + 0.6 * t;
+  const step = 2.5 + 17.5 * t;
   const smoothPasses = t > 0.55 ? 2 : 1;
 
   return { sampleCount, pyramidLevels, iterations, step, smoothPasses };
