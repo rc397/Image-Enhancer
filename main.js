@@ -1,5 +1,5 @@
 import { computeOutputSize, fitCover } from './upscale.js';
-import { animateDemonsRegistration } from './registration.js';
+import { animateTileLock } from './tile-lock.js';
 import { getWarpBudget, wireWarpQualityUI } from './warp-quality.js';
 
 const inputFile = document.getElementById('inputFile');
@@ -198,25 +198,15 @@ runBtn.addEventListener('click', async () => {
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(srcCanvas, 0, 0);
 
-  const frameStride = 1;
-
-  await animateDemonsRegistration({
+  await animateTileLock({
     srcCanvas: srcWork,
     targetCanvas: profWork,
     outCtx: workOutCtx,
-    workWidth: work.w,
-    workHeight: work.h,
-    iterations: budget.iterations,
-    step: budget.step,
-    smoothRadius: budget.smoothRadius,
-    smoothPasses: budget.smoothPasses,
-    frameStride,
-    pyramidLevels: budget.pyramidLevels,
     sampleCount: budget.sampleCount,
     cancel: isCancelled,
-    onStatus: (i, n) => {
-      const pct = n > 0 ? Math.min(100, Math.max(0, Math.round((i / n) * 100))) : 100;
-      setStatus(`Enhancing (aligning pixels)... ${pct}%`);
+    onStatus: (pct, locked, total) => {
+      const p = Math.min(100, Math.max(0, pct | 0));
+      setStatus(`Enhancing (locking pixels)... ${p}% (${locked}/${total})`);
     },
     drawScaleToOut: () => {
       ctx.clearRect(0, 0, width, height);
