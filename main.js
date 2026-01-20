@@ -208,7 +208,7 @@ runBtn.addEventListener('click', async () => {
     workHeight: work.h,
     iterations: budget.iterations,
     step: budget.step,
-    smoothRadius: 2,
+    smoothRadius: budget.smoothRadius,
     smoothPasses: budget.smoothPasses,
     frameStride,
     pyramidLevels: budget.pyramidLevels,
