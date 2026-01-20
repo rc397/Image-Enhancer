@@ -206,7 +206,11 @@ runBtn.addEventListener('click', async () => {
     cancel: isCancelled,
     onStatus: (pct, locked, total) => {
       const p = Math.min(100, Math.max(0, pct | 0));
-      setStatus(`Enhancing (locking pixels)... ${p}% (${locked}/${total})`);
+      if (total && total <= 5000) {
+        setStatus(`Enhancing (locking pixels)... ${p}% (${locked}/${total})`);
+      } else {
+        setStatus(`Enhancing (locking pixels)... ${p}%`);
+      }
     },
     drawScaleToOut: () => {
       ctx.clearRect(0, 0, width, height);

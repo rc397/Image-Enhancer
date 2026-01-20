@@ -6,6 +6,11 @@ function lerp(a, b, t) {
   return a + (b - a) * t;
 }
 
+function easeInOut(t) {
+  t = clamp(t, 0, 1);
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
 function toGray(imgData) {
   const { data, width, height } = imgData;
   const gray = new Float32Array(width * height);
@@ -13,6 +18,11 @@ function toGray(imgData) {
     gray[p] = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
   }
   return gray;
+}
+
+function toRGBA32(imgData) {
+  // Little-endian: ABGR in memory if using Uint32Array view; we just preserve bytes.
+  return new Uint32Array(imgData.data.buffer);
 }
 
 function makeSamplePattern(tile) {
@@ -54,16 +64,15 @@ function chooseTileParams(sampleCount) {
   const t = clamp((sampleCount - min) / (max - min), 0, 1);
 
   // Smaller tiles at higher settings = more visible “puzzle” motion.
-  const tile = clamp(Math.round(40 - 24 * t), 16, 48);
-  const searchRadius = clamp(Math.round(10 + 54 * t), 10, 80);
-  const searchStep = t > 0.6 ? 3 : 4;
+  // Highest setting becomes pixel-level.
+  const tile = clamp(Math.round(24 - 23 * t), 1, 24);
   const frames = Math.round(70 + 90 * t);
 
   // Movement aggressiveness
-  const moveAlpha = lerp(0.22, 0.55, t);
-  const snapDist = lerp(1.5, 3.5, t);
+  const moveAlpha = lerp(0.22, 0.75, t);
+  const snapDist = lerp(1.5, 3.0, t);
 
-  return { tile, searchRadius, searchStep, frames, moveAlpha, snapDist };
+  return { tile, frames, moveAlpha, snapDist, t };
 }
 
 function renderTiles({
@@ -107,6 +116,87 @@ function renderTiles({
   }
 }
 
+function sortIndicesByValue(values) {
+  const idx = new Uint32Array(values.length);
+  for (let i = 0; i < idx.length; i++) idx[i] = i;
+  // JS sort only works on arrays, so convert; still OK at our working resolutions.
+  const arr = Array.from(idx);
+  arr.sort((a, b) => {
+    const da = values[a] - values[b];
+    if (da !== 0) return da;
+    return a - b;
+  });
+  return Uint32Array.from(arr);
+}
+
+function buildGlobalPixelAssignment(srcGray, tgtGray) {
+  // Global “anywhere” match by ranking pixels by luminance.
+  // This produces a target-like image using source pixels, and is deterministic.
+  const srcOrder = sortIndicesByValue(srcGray);
+  const tgtOrder = sortIndicesByValue(tgtGray);
+  return { srcOrder, tgtOrder };
+}
+
+function buildGlobalTileAssignment(srcGray, tgtGray, w, h, tile) {
+  const tilesX = Math.floor(w / tile);
+  const tilesY = Math.floor(h / tile);
+  const count = tilesX * tilesY;
+
+  const srcVals = new Float32Array(count);
+  const tgtVals = new Float32Array(count);
+
+  let k = 0;
+  for (let ty = 0; ty < tilesY; ty++) {
+    for (let tx = 0; tx < tilesX; tx++) {
+      const x0 = tx * tile;
+      const y0 = ty * tile;
+      let sSum = 0;
+      let tSum = 0;
+      let n = 0;
+      for (let y = 0; y < tile; y += Math.max(1, (tile / 6) | 0)) {
+        for (let x = 0; x < tile; x += Math.max(1, (tile / 6) | 0)) {
+          const i = (y0 + y) * w + (x0 + x);
+          sSum += srcGray[i];
+          tSum += tgtGray[i];
+          n++;
+        }
+      }
+      srcVals[k] = sSum / n;
+      tgtVals[k] = tSum / n;
+      k++;
+    }
+  }
+
+  const srcOrder = sortIndicesByValue(srcVals);
+  const tgtOrder = sortIndicesByValue(tgtVals);
+  return { srcOrder, tgtOrder, tilesX, tilesY };
+}
+
+function renderPixelsFrame({ outCtx, w, h, srcRGBA32, srcOrder, tgtOrder, t }) {
+  const tt = easeInOut(t);
+  const img = outCtx.createImageData(w, h);
+  const out32 = new Uint32Array(img.data.buffer);
+
+  // Fill alpha as opaque background by copying colors.
+  for (let i = 0; i < out32.length; i++) out32[i] = 0xFFFFFFFF;
+
+  for (let k = 0; k < srcOrder.length; k++) {
+    const s = srcOrder[k];
+    const d = tgtOrder[k];
+
+    const sx = s % w;
+    const sy = (s / w) | 0;
+    const dx = d % w;
+    const dy = (d / w) | 0;
+
+    const cx = clamp((sx + (dx - sx) * tt) | 0, 0, w - 1);
+    const cy = clamp((sy + (dy - sy) * tt) | 0, 0, h - 1);
+    out32[cy * w + cx] = srcRGBA32[s];
+  }
+
+  outCtx.putImageData(img, 0, 0);
+}
+
 export function getTileLockBudget(sampleCount) {
   return chooseTileParams(sampleCount);
 }
@@ -127,8 +217,7 @@ export async function animateTileLock({
   const w = outCtx.canvas.width;
   const h = outCtx.canvas.height;
 
-  const { tile, searchRadius, searchStep, frames, moveAlpha, snapDist } =
-    chooseTileParams(sampleCount);
+  const { tile, frames, moveAlpha, snapDist } = chooseTileParams(sampleCount);
 
   // Precompute grayscale
   const sctx = srcCanvas.getContext('2d', { willReadFrequently: true });
@@ -138,44 +227,53 @@ export async function animateTileLock({
   const srcGray = toGray(srcImg);
   const tgtGray = toGray(tgtImg);
 
-  const pts = makeSamplePattern(tile);
+  // Pixel mode (highest setting): 1x1 tiles, global anywhere mapping.
+  if (tile === 1) {
+    const srcRGBA32 = toRGBA32(srcImg);
+    const { srcOrder, tgtOrder } = buildGlobalPixelAssignment(srcGray, tgtGray);
 
-  // Build tiles (grid)
+    for (let f = 0; f < frames; f++) {
+      if (cancel && cancel()) return 'cancelled';
+      const pct = Math.min(100, Math.max(0, Math.round((f / Math.max(1, frames - 1)) * 100)));
+      if (onStatus) onStatus(pct, 0, srcOrder.length);
+      renderPixelsFrame({ outCtx, w, h, srcRGBA32, srcOrder, tgtOrder, t: f / Math.max(1, frames - 1) });
+      if (typeof drawScaleToOut === 'function') drawScaleToOut();
+      await new Promise((r) => requestAnimationFrame(r));
+    }
+
+    // Final frame at t=1
+    renderPixelsFrame({ outCtx, w, h, srcRGBA32, srcOrder, tgtOrder, t: 1 });
+    if (typeof drawScaleToOut === 'function') drawScaleToOut();
+    return 'done';
+  }
+
+  // Tile mode: global anywhere matching by tile luminance ranking.
+  const { srcOrder, tgtOrder, tilesX, tilesY } = buildGlobalTileAssignment(srcGray, tgtGray, w, h, tile);
+
   const tiles = [];
-  for (let y = 0; y + tile <= h; y += tile) {
-    for (let x = 0; x + tile <= w; x += tile) {
-      tiles.push({ sx: x, sy: y, x, y, gx: x, gy: y, locked: false });
+  for (let ty = 0; ty < tilesY; ty++) {
+    for (let tx = 0; tx < tilesX; tx++) {
+      const sx = tx * tile;
+      const sy = ty * tile;
+      tiles.push({ sx, sy, x: sx, y: sy, gx: sx, gy: sy, locked: false });
     }
   }
 
-  // For each tile, find best matching location in target within a search window.
-  // This is deterministic and happens once.
-  for (let i = 0; i < tiles.length; i++) {
-    if (cancel && cancel()) return 'cancelled';
-    const t = tiles[i];
+  // Assign each source tile to a target tile position.
+  for (let k = 0; k < srcOrder.length; k++) {
+    const sIdx = srcOrder[k];
+    const dIdx = tgtOrder[k];
 
-    let best = Infinity;
-    let bestX = t.sx;
-    let bestY = t.sy;
+    const sx = (sIdx % tilesX) * tile;
+    const sy = ((sIdx / tilesX) | 0) * tile;
+    const dx = (dIdx % tilesX) * tile;
+    const dy = ((dIdx / tilesX) | 0) * tile;
 
-    const minX = clamp(t.sx - searchRadius, 0, w - tile);
-    const maxX = clamp(t.sx + searchRadius, 0, w - tile);
-    const minY = clamp(t.sy - searchRadius, 0, h - tile);
-    const maxY = clamp(t.sy + searchRadius, 0, h - tile);
-
-    for (let yy = minY; yy <= maxY; yy += searchStep) {
-      for (let xx = minX; xx <= maxX; xx += searchStep) {
-        const s = scorePatch(srcGray, tgtGray, w, h, t.sx, t.sy, xx, yy, tile, pts);
-        if (s < best) {
-          best = s;
-          bestX = xx;
-          bestY = yy;
-        }
-      }
-    }
-
-    t.gx = bestX;
-    t.gy = bestY;
+    const tileObj = tiles[sIdx];
+    tileObj.sx = sx;
+    tileObj.sy = sy;
+    tileObj.gx = dx;
+    tileObj.gy = dy;
   }
 
   // Animate movement and locking.
