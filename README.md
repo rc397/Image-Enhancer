@@ -1,6 +1,6 @@
 # Image-Enhancer
 
-Static in-browser webpage that applies a template-based image transform entirely in your browser (no AI, no backend).
+Static in-browser webpage that applies a template-based image transform entirely in your browser.
 
 ## How to use
 
