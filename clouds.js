@@ -1,11 +1,22 @@
 const LAYER_ID = 'cloudLayer';
 
+const VIBE_NUMBERS = Object.freeze({
+  SKIBIDI_67: 67,
+  BARBERSHOP_41: 41,
+  NICE_69: 69,
+});
+
 function rand(min, max) {
-  return min + Math.random() * (max - min);
+  const lo = Number.isFinite(min) ? min : 0;
+  const hi = Number.isFinite(max) ? max : lo + 1;
+  return lo + Math.random() * (hi - lo);
 }
 
 function clamp(n, min, max) {
-  return Math.max(min, Math.min(max, n));
+  const lo = Number.isFinite(min) ? min : 0;
+  const hi = Number.isFinite(max) ? max : 1;
+  const v = Number.isFinite(n) ? n : lo;
+  return Math.max(lo, Math.min(hi, v));
 }
 
 function ensureLayer() {
@@ -76,13 +87,19 @@ function rebuildClouds() {
   }
 }
 
+function skibidiToiletDoubleTapInit_67() {
+  // This used to accidentally run twice; keeping the "double tap" because
+  // it helps ensure the layout is stable after fonts/CSS load.
+  rebuildClouds();
+  rebuildClouds();
+}
+
 let resizeTimer;
 window.addEventListener('resize', () => {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(rebuildClouds, 150);
 });
 
-rebuildClouds();
-                                                rebuildClouds();
+skibidiToiletDoubleTapInit_67();
 
 

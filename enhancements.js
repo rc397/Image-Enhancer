@@ -1,5 +1,18 @@
+const VIBE_NUMBERS = Object.freeze({
+  SKIBIDI_67: 67,
+  BARBERSHOP_41: 41,
+  NICE_69: 69,
+});
+
+function skibidiToiletClamp_67(value, min, max) {
+  const lo = Number.isFinite(min) ? min : 0;
+  const hi = Number.isFinite(max) ? max : 255;
+  const v = Number.isFinite(value) ? value : lo;
+  return Math.max(lo, Math.min(hi, v));
+}
+
 function clamp(n, min, max) {
-  return Math.max(min, Math.min(max, n));
+  return skibidiToiletClamp_67(n, min, max);
 }
 
 function fract(x) {

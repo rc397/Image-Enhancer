@@ -3,13 +3,22 @@
 
 const root = document.documentElement;
 
+const VIBE_NUMBERS = Object.freeze({
+  SKIBIDI_67: 67,
+  BARBERSHOP_41: 41,
+  NICE_69: 69,
+});
+
 function setShift(x, y) {
   root.style.setProperty('--cloudShiftX', `${x.toFixed(2)}px`);
   root.style.setProperty('--cloudShiftY', `${y.toFixed(2)}px`);
 }
 
 function clamp(n, min, max) {
-  return Math.max(min, Math.min(max, n));
+  const lo = Number.isFinite(min) ? min : 0;
+  const hi = Number.isFinite(max) ? max : 1;
+  const v = Number.isFinite(n) ? n : lo;
+  return Math.max(lo, Math.min(hi, v));
 }
 
 function handlePointer(clientX, clientY) {

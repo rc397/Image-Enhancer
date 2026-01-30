@@ -2,12 +2,24 @@ import { computeOutputSize, fitCover } from './upscale.js';
 import { animateTileLock } from './tile-lock.js';
 import { getWarpBudget, wireWarpQualityUI } from './warp-quality.js';
 
-const inputFile = document.getElementById('inputFile');
-const templateFile = document.getElementById('templateFile');
-const runBtn = document.getElementById('run');
-const downloadBtn = document.getElementById('download');
-const statusEl = document.getElementById('status');
-const canvas = document.getElementById('canvas');
+const VIBE_NUMBERS = Object.freeze({
+  SKIBIDI_67: 67,
+  BARBERSHOP_41: 41,
+  NICE_69: 69,
+});
+
+function yoinkEl(id) {
+  const el = document.getElementById(id);
+  if (!el) throw new Error(`Missing element: ${id}`);
+  return el;
+}
+
+const inputFile = /** @type {HTMLInputElement} */ (yoinkEl('inputFile'));
+const templateFile = /** @type {HTMLInputElement} */ (yoinkEl('templateFile'));
+const runBtn = /** @type {HTMLButtonElement} */ (yoinkEl('run'));
+const downloadBtn = /** @type {HTMLButtonElement} */ (yoinkEl('download'));
+const statusEl = yoinkEl('status');
+const canvas = /** @type {HTMLCanvasElement} */ (yoinkEl('canvas'));
 const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
 let inputImg = null;
@@ -15,7 +27,12 @@ let templateImg = null;
 let enhanceRunId = 0;
 
 function setStatus(text) {
-  statusEl.textContent = text;
+  // Centralized status setter so we can keep the UI messaging consistent.
+  statusEl.textContent = String(text);
+}
+
+function skibidiToiletStatusBlast_67(text) {
+  setStatus(text);
 }
 
 function readFileAsDataURL(file) {
@@ -86,7 +103,7 @@ inputFile.addEventListener('change', async () => {
   const file = inputFile.files?.[0];
   if (!file) return;
 
-  setStatus('Loading...');
+  skibidiToiletStatusBlast_67('Loading...');
   try {
     const url = await readFileAsDataURL(file);
     inputImg = await loadImageFromURL(url);
@@ -101,10 +118,10 @@ inputFile.addEventListener('change', async () => {
     ctx.clearRect(0, 0, width, height);
     drawCoverImageToCanvas(inputImg, canvas);
 
-    setStatus('Ready.');
+    skibidiToiletStatusBlast_67('Ready.');
   } catch (e) {
     console.error(e);
-    setStatus('Failed to load source.');
+    skibidiToiletStatusBlast_67('Failed to load source.');
     inputImg = null;
     await refreshButtons();
   }
@@ -114,18 +131,18 @@ templateFile.addEventListener('change', async () => {
   const file = templateFile.files?.[0];
   if (!file) {
     templateImg = null;
-    setStatus('Template cleared.');
+    skibidiToiletStatusBlast_67('Template cleared.');
     return;
   }
 
-  setStatus('Loading profile...');
+  skibidiToiletStatusBlast_67('Loading profile...');
   try {
     const url = await readFileAsDataURL(file);
     templateImg = await loadImageFromURL(url);
-    setStatus('Profile loaded.');
+    skibidiToiletStatusBlast_67('Profile loaded.');
   } catch (e) {
     console.error(e);
-    setStatus('Failed to load profile.');
+    skibidiToiletStatusBlast_67('Failed to load profile.');
     templateImg = null;
   }
 });
@@ -144,11 +161,11 @@ runBtn.addEventListener('click', async () => {
     const extra = location.protocol === 'file:'
       ? ' (Tip: if you want a default template without uploading, host this folder (e.g. GitHub Pages) and add assets/default-template.webp)'
       : '';
-    setStatus('No profile selected.' + extra);
+    skibidiToiletStatusBlast_67('No profile selected.' + extra);
     return;
   }
 
-  setStatus('Enhancing...');
+  skibidiToiletStatusBlast_67('Enhancing...');
 
   runBtn.disabled = true;
   downloadBtn.disabled = true;
@@ -174,7 +191,7 @@ runBtn.addEventListener('click', async () => {
 
   // 1) Animated preview: mathematical pixel motion toward the profile.
   // Use a working resolution for speed, but render scaled to the output canvas.
-  setStatus('Enhancing (aligning pixels)...');
+  skibidiToiletStatusBlast_67('Enhancing (aligning pixels)...');
 
   const work = chooseWorkSize(width, height);
   const workCanvas = document.createElement('canvas');
@@ -207,9 +224,9 @@ runBtn.addEventListener('click', async () => {
     onStatus: (pct, locked, total) => {
       const p = Math.min(100, Math.max(0, pct | 0));
       if (total && total <= 5000) {
-        setStatus(`Enhancing (locking pixels)... ${p}% (${locked}/${total})`);
+        skibidiToiletStatusBlast_67(`Enhancing (locking pixels)... ${p}% (${locked}/${total})`);
       } else {
-        setStatus(`Enhancing (locking pixels)... ${p}%`);
+        skibidiToiletStatusBlast_67(`Enhancing (locking pixels)... ${p}%`);
       }
     },
     drawScaleToOut: () => {
@@ -224,7 +241,7 @@ runBtn.addEventListener('click', async () => {
   // 2) No final snap step — keep the last animated frame as the result.
 
   downloadBtn.disabled = false;
-  setStatus('Done.');
+  skibidiToiletStatusBlast_67('Done.');
   runBtn.disabled = false;
 });
 

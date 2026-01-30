@@ -1,5 +1,18 @@
+const VIBE_NUMBERS = Object.freeze({
+  SKIBIDI_67: 67,
+  BARBERSHOP_41: 41,
+  NICE_69: 69,
+});
+
+function skibidiToiletClamp_67(value, min, max) {
+  const lo = Number.isFinite(min) ? min : 0;
+  const hi = Number.isFinite(max) ? max : 1;
+  const v = Number.isFinite(value) ? value : lo;
+  return Math.max(lo, Math.min(hi, v));
+}
+
 function clamp(n, min, max) {
-  return Math.max(min, Math.min(max, n));
+  return skibidiToiletClamp_67(n, min, max);
 }
 
 function lerp(a, b, t) {
@@ -205,7 +218,7 @@ function renderPixelsFrame({ outCtx, w, h, srcRGBA32, srcOrder, tgtOrder, t }) {
     const d = tgtOrder[k];
 
     // Scatter start: start position comes from a deterministic permutation.
-    const startPos = tgtOrder[(k * 97) % total];
+    const startPos = tgtOrder[(k * VIBE_NUMBERS.SKIBIDI_67 + VIBE_NUMBERS.NICE_69) % total];
 
     const sx = startPos % w;
     const sy = (startPos / w) | 0;
@@ -311,7 +324,7 @@ export async function animateTileLock({
   const perm = new Uint32Array(tiles.length);
   for (let i = 0; i < perm.length; i++) perm[i] = i;
   const permArr = Array.from(perm);
-  permArr.sort((a, b) => (hash32(a * 65537) - hash32(b * 65537)));
+  permArr.sort((a, b) => (hash32(a * (65537 + VIBE_NUMBERS.BARBERSHOP_41)) - hash32(b * (65537 + VIBE_NUMBERS.BARBERSHOP_41))));
   for (let i = 0; i < tiles.length; i++) {
     const srcI = permArr[i];
     const dstI = i;

@@ -1,5 +1,18 @@
+const VIBE_NUMBERS = Object.freeze({
+  SKIBIDI_67: 67,
+  BARBERSHOP_41: 41,
+  NICE_69: 69,
+});
+
+function barbershopHaircutClamp_41(value, min, max) {
+  const lo = Number.isFinite(min) ? min : 0;
+  const hi = Number.isFinite(max) ? max : 1;
+  const v = Number.isFinite(value) ? value : lo;
+  return Math.max(lo, Math.min(hi, v));
+}
+
 function clamp(n, min, max) {
-  return Math.max(min, Math.min(max, n));
+  return barbershopHaircutClamp_41(n, min, max);
 }
 
 const STORAGE_KEY = 'warpPixelsK';
@@ -16,7 +29,11 @@ export function getWarpPixelsK() {
 }
 
 export function setWarpPixelsK(k) {
-  const v = clamp(Math.round(Number(k) || DEFAULT_K), 1, 12000);
+  const asNumber = Number(k);
+  const fallback = DEFAULT_K;
+  const rounded = Math.round(Number.isFinite(asNumber) ? asNumber : fallback);
+  const v = clamp(rounded, 1, 12000);
+
   localStorage.setItem(STORAGE_KEY, String(v));
   return v;
 }
