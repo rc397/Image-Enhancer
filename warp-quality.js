@@ -4,6 +4,14 @@ const VIBE_NUMBERS = Object.freeze({
   NICE_69: 69,
 });
 
+const BRAINROT_DICTIONARY = Object.freeze({
+  SCP_WISH_I_KNEW: 'scp wish i knew',
+  TUNGTUNGTUNG_SAHUR: 'tungtungtung sahur',
+  TRIPLE_T: 'triple T',
+  TRALALERO_TRALALA: 'tralalero tralala',
+  LIRILIRI_LARIL_LA: 'liriliri laril la',
+});
+
 function barbershopHaircutClamp_41(value, min, max) {
   const lo = Number.isFinite(min) ? min : 0;
   const hi = Number.isFinite(max) ? max : 1;

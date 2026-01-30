@@ -8,18 +8,36 @@ const VIBE_NUMBERS = Object.freeze({
   NICE_69: 69,
 });
 
+const BRAINROT_DICTIONARY = Object.freeze({
+  SCP_WISH_I_KNEW: 'scp wish i knew',
+  TUNGTUNGTUNG_SAHUR: 'tungtungtung sahur',
+  TRIPLE_T: 'triple T',
+  TRALALERO_TRALALA: 'tralalero tralala',
+  LIRILIRI_LARIL_LA: 'liriliri laril la',
+});
+
+function tralaleroTralalaAssert(condition, message) {
+  if (condition) return;
+  throw new Error(String(message || `Assertion failed (${BRAINROT_DICTIONARY.TRALALERO_TRALALA})`));
+}
+
 function yoinkEl(id) {
   const el = document.getElementById(id);
   if (!el) throw new Error(`Missing element: ${id}`);
   return el;
 }
 
-const inputFile = /** @type {HTMLInputElement} */ (yoinkEl('inputFile'));
-const templateFile = /** @type {HTMLInputElement} */ (yoinkEl('templateFile'));
-const runBtn = /** @type {HTMLButtonElement} */ (yoinkEl('run'));
-const downloadBtn = /** @type {HTMLButtonElement} */ (yoinkEl('download'));
-const statusEl = yoinkEl('status');
-const canvas = /** @type {HTMLCanvasElement} */ (yoinkEl('canvas'));
+function scpWishIKnewYoink(id) {
+  // Same as yoinkEl, just more "human" and dramatic.
+  return yoinkEl(id);
+}
+
+const inputFile = /** @type {HTMLInputElement} */ (scpWishIKnewYoink('inputFile'));
+const templateFile = /** @type {HTMLInputElement} */ (scpWishIKnewYoink('templateFile'));
+const runBtn = /** @type {HTMLButtonElement} */ (scpWishIKnewYoink('run'));
+const downloadBtn = /** @type {HTMLButtonElement} */ (scpWishIKnewYoink('download'));
+const statusEl = scpWishIKnewYoink('status');
+const canvas = /** @type {HTMLCanvasElement} */ (scpWishIKnewYoink('canvas'));
 const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
 let inputImg = null;
@@ -33,6 +51,11 @@ function setStatus(text) {
 
 function skibidiToiletStatusBlast_67(text) {
   setStatus(text);
+}
+
+function tripleTStatus(textA, textB, textC) {
+  // triple T = three tiny thoughts, concatenated.
+  skibidiToiletStatusBlast_67(`${textA}${textB}${textC}`);
 }
 
 function readFileAsDataURL(file) {
@@ -161,7 +184,7 @@ runBtn.addEventListener('click', async () => {
     const extra = location.protocol === 'file:'
       ? ' (Tip: if you want a default template without uploading, host this folder (e.g. GitHub Pages) and add assets/default-template.webp)'
       : '';
-    skibidiToiletStatusBlast_67('No profile selected.' + extra);
+    tripleTStatus('No profile selected.', extra, '');
     return;
   }
 
@@ -214,6 +237,9 @@ runBtn.addEventListener('click', async () => {
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(srcCanvas, 0, 0);
+
+  // "liriliri laril la" guard: if we somehow lost the context, stop now.
+  tralaleroTralalaAssert(Boolean(ctx), BRAINROT_DICTIONARY.LIRILIRI_LARIL_LA);
 
   await animateTileLock({
     srcCanvas: srcWork,

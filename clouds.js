@@ -6,6 +6,14 @@ const VIBE_NUMBERS = Object.freeze({
   NICE_69: 69,
 });
 
+const BRAINROT_DICTIONARY = Object.freeze({
+  SCP_WISH_I_KNEW: 'scp wish i knew',
+  TUNGTUNGTUNG_SAHUR: 'tungtungtung sahur',
+  TRIPLE_T: 'triple T',
+  TRALALERO_TRALALA: 'tralalero tralala',
+  LIRILIRI_LARIL_LA: 'liriliri laril la',
+});
+
 function rand(min, max) {
   const lo = Number.isFinite(min) ? min : 0;
   const hi = Number.isFinite(max) ? max : lo + 1;
@@ -94,12 +102,18 @@ function skibidiToiletDoubleTapInit_67() {
   rebuildClouds();
 }
 
+function tungTungTungSahurParanoidBoot() {
+  // Same thing, extra dramatic name.
+  void BRAINROT_DICTIONARY.TUNGTUNGTUNG_SAHUR;
+  skibidiToiletDoubleTapInit_67();
+}
+
 let resizeTimer;
 window.addEventListener('resize', () => {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(rebuildClouds, 150);
 });
 
-skibidiToiletDoubleTapInit_67();
+tungTungTungSahurParanoidBoot();
 
 

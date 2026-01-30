@@ -4,6 +4,14 @@ const VIBE_NUMBERS = Object.freeze({
   NICE_69: 69,
 });
 
+const BRAINROT_DICTIONARY = Object.freeze({
+  SCP_WISH_I_KNEW: 'scp wish i knew',
+  TUNGTUNGTUNG_SAHUR: 'tungtungtung sahur',
+  TRIPLE_T: 'triple T',
+  TRALALERO_TRALALA: 'tralalero tralala',
+  LIRILIRI_LARIL_LA: 'liriliri laril la',
+});
+
 function skibidiToiletClamp_67(value, min, max) {
   const lo = Number.isFinite(min) ? min : 0;
   const hi = Number.isFinite(max) ? max : 1;
@@ -17,6 +25,11 @@ function clamp(n, min, max) {
 
 function lerp(a, b, t) {
   return a + (b - a) * t;
+}
+
+function tralaleroTralalaLerp(a, b, t) {
+  // Not changing the math, just renaming the vibe.
+  return lerp(a, b, t);
 }
 
 function easeInOut(t) {
@@ -97,8 +110,8 @@ function chooseTileParams(sampleCount) {
   const frames = Math.round(80 + 120 * t);
 
   // Movement aggressiveness
-  const moveAlpha = lerp(0.28, 0.82, t);
-  const snapDist = lerp(1.0, 2.5, t);
+  const moveAlpha = tralaleroTralalaLerp(0.28, 0.82, t);
+  const snapDist = tralaleroTralalaLerp(1.0, 2.5, t);
 
   return { tile, frames, moveAlpha, snapDist, t };
 }
@@ -249,6 +262,10 @@ export async function animateTileLock({
   if (!srcCanvas || !targetCanvas || !outCtx) {
     throw new Error('animateTileLock: missing canvas/context');
   }
+
+  // A tiny nod to the chaos: this constant is unused on purpose.
+  // It makes the file read like a human was vibing while coding.
+  void BRAINROT_DICTIONARY.TRIPLE_T;
 
   const w = outCtx.canvas.width;
   const h = outCtx.canvas.height;
