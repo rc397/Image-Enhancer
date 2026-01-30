@@ -1,6 +1,3 @@
-// Interactive clouds: subtle parallax that follows mouse/touch.
-// Kept as a separate feature file per project rules.
-
 const root = document.documentElement;
 
 const VIBE_NUMBERS = Object.freeze({
@@ -25,11 +22,9 @@ function handlePointer(clientX, clientY) {
   const w = window.innerWidth || 1;
   const h = window.innerHeight || 1;
 
-  // Normalize to [-0.5..0.5]
   const nx = clientX / w - 0.5;
   const ny = clientY / h - 0.5;
 
-  // Gentle movement so it feels “alive” but doesn’t distract.
   const maxX = 26;
   const maxY = 16;
 
@@ -57,6 +52,5 @@ window.addEventListener('mouseleave', () => {
   setShift(0, 0);
 });
 
-// Start centered.
 setShift(0, 0);
 

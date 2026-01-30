@@ -1,5 +1,3 @@
-/* Cloud interactivity (parallax) lives here to keep the feature isolated. */
-
 #cloudLayer {
       transform: translate3d(var(--cloudShiftX, 0px), var(--cloudShiftY, 0px), 0);
       transition: transform 120ms ease-out;

@@ -5,7 +5,6 @@
   overflow: hidden;
   pointer-events: none;
   z-index: 0;
-  /* Helps clouds show against very bright gradients */
   mix-blend-mode: multiply;
 }
 
@@ -46,7 +45,6 @@
 }
 
 .cloud::after {
-  /* Extra puff cluster */
   width: 46%;
   height: 86%;
   left: 10%;
@@ -73,7 +71,6 @@
   50% { margin-top: 10px; }
 }
 
-/* Subtle "halo" fog layer to make it feel less empty */
 #cloudLayer::after {
   content: '';
   position: absolute;

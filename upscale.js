@@ -14,9 +14,8 @@ export function computeOutputSize(srcW, srcH, scaleFactor) {
   const w0 = skibidiClampToPositive_67(srcW * safeScale);
   const h0 = skibidiClampToPositive_67(srcH * safeScale);
 
-  // Browser-friendly caps (keeps Pages usable on mid devices).
   const maxDim = 8192;
-  const maxPixels = 30_000_000; // ~30MP
+  const maxPixels = 30_000_000;
 
   let w = w0;
   let h = h0;

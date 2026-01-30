@@ -124,7 +124,6 @@ function imageDataToGray(imgData) {
   const { data, width, height } = imgData;
   const gray = new Float32Array(width * height);
   for (let i = 0, p = 0; p < gray.length; p++, i += 4) {
-    // Rec.709
     gray[p] = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
   }
   return gray;
@@ -224,7 +223,6 @@ function buildPyramidSizes(baseW, baseH, levels) {
       h: Math.max(32, Math.round(baseH / s)),
     });
   }
-  // Ensure last is exactly base
   sizes[sizes.length - 1] = { w: baseW, h: baseH };
   return sizes;
 }
@@ -250,10 +248,6 @@ function upsampleDisplacement(prevDx, prevDy, prevW, prevH, w, h) {
   return { dx, dy };
 }
 
-/**
- * Demons-style registration (deterministic) on a working-resolution canvas.
- * It iteratively updates a displacement field so the warped source matches target.
- */
 export async function animateDemonsRegistration({
   srcCanvas,
   targetCanvas,
@@ -286,7 +280,6 @@ export async function animateDemonsRegistration({
 
   const sizes = buildPyramidSizes(baseW, baseH, levels);
 
-  // Split iterations across levels (more at finer scales).
   const weights = sizes.map((_, i) => 0.6 + 0.4 * (i / Math.max(1, sizes.length - 1)));
   const wsum = weights.reduce((a, b) => a + b, 0);
   const itersPerLevel = weights.map((w) => Math.max(6, Math.round((itersTotal * w) / wsum)));
@@ -301,8 +294,6 @@ export async function animateDemonsRegistration({
   const eps = 1e-3;
   const requestedSamples = Math.max(1, (sampleCount | 0) || 8000);
 
-  // Deterministic "permutation" index generator: idx = (start + k*(N-1)) mod N
-  // step = N-1 is coprime with N for any N>1, so this visits every index exactly once.
   function forEachSampleIndex(N, count, start, cb) {
     if (N <= 1) {
       cb(0);
@@ -324,7 +315,6 @@ export async function animateDemonsRegistration({
     const { w, h } = sizes[levelIndex];
     const levelIters = itersPerLevel[levelIndex];
 
-    // Create properly scaled per-level images.
     const srcLevelCanvas = document.createElement('canvas');
     srcLevelCanvas.width = w;
     srcLevelCanvas.height = h;
@@ -362,7 +352,6 @@ export async function animateDemonsRegistration({
     prevH = h;
 
     const warpedGray = new Float32Array(w * h);
-    // Ensure output context matches the level size.
     if (outCtx && outCtx.canvas) {
       if (outCtx.canvas.width !== w) outCtx.canvas.width = w;
       if (outCtx.canvas.height !== h) outCtx.canvas.height = h;
@@ -378,16 +367,12 @@ export async function animateDemonsRegistration({
       }
     }
 
-    // Render initial frame at this level
     renderToOut();
 
-    // Larger step at coarse, smaller at fine
     const levelStep = baseStep * (0.95 + 0.55 * (1 - levelIndex / Math.max(1, sizes.length - 1)));
     const levelBlurPasses = clamp(blurPasses + (levelIndex === 0 ? 1 : 0), 1, 3);
 
-    // Exact number of pixels updated per iteration (requested by UI).
     const levelSamples = Math.min(requestedSamples, w * h);
-    // Different seed per level so it doesn't always hit the same pixels.
     const seedBase = ((w * 73856093) ^ (h * 19349663) ^ (requestedSamples * 83492791)) >>> 0;
 
     const rgba = [0, 0, 0, 255];
@@ -395,8 +380,6 @@ export async function animateDemonsRegistration({
     for (let iter = 0; iter < levelIters; iter++) {
       if (cancel && cancel()) return 'cancelled';
 
-      // Update displacement using EXACTLY `levelSamples` pixels.
-      // This is deterministic and makes the UI boxes literally true.
       const N = w * h;
       const start = (seedBase + (iter + 1) * 2654435761) >>> 0;
 
@@ -413,7 +396,7 @@ export async function animateDemonsRegistration({
         const gxi = tgtGx[i];
         const gyi = tgtGy[i];
         const g2 = gxi * gxi + gyi * gyi;
-        if (g2 < 0.02) return; // ignore near-flat regions
+        if (g2 < 0.02) return;
 
         const denom = g2 + diff * diff + eps;
         dx[i] += levelStep * (diff * gxi) / denom;

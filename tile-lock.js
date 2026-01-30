@@ -28,7 +28,6 @@ function lerp(a, b, t) {
 }
 
 function tralaleroTralalaLerp(a, b, t) {
-  // Not changing the math, just renaming the vibe.
   return lerp(a, b, t);
 }
 
@@ -38,7 +37,6 @@ function easeInOut(t) {
 }
 
 function hash32(x) {
-  // Deterministic integer hash
   x |= 0;
   x ^= x >>> 16;
   x = Math.imul(x, 0x7feb352d);
@@ -58,12 +56,10 @@ function toGray(imgData) {
 }
 
 function toRGBA32(imgData) {
-  // Little-endian: ABGR in memory if using Uint32Array view; we just preserve bytes.
   return new Uint32Array(imgData.data.buffer);
 }
 
 function makeSamplePattern(tile) {
-  // Deterministic sample points inside a tile.
   const pts = [];
   const steps = tile <= 18 ? 4 : tile <= 28 ? 5 : 6;
   for (let j = 0; j < steps; j++) {
@@ -77,7 +73,6 @@ function makeSamplePattern(tile) {
 }
 
 function scorePatch(srcGray, tgtGray, w, h, sx, sy, tx, ty, tile, pts) {
-  // Compare src patch at (sx,sy) to target patch at (tx,ty)
   let sum = 0;
   for (let k = 0; k < pts.length; k++) {
     const px = (pts[k].x | 0);
@@ -96,8 +91,6 @@ function scorePatch(srcGray, tgtGray, w, h, sx, sy, tx, ty, tile, pts) {
 }
 
 function chooseTileParams(sampleCount) {
-  // Explicit ladder so max is ALWAYS pixels (tile=1).
-  // These correspond to the UI buttons.
   const sc = Number(sampleCount) || 211;
   let tile = 24;
   if (sc >= 12000) tile = 1;
@@ -109,7 +102,6 @@ function chooseTileParams(sampleCount) {
   const t = clamp((sc - 211) / (12000 - 211), 0, 1);
   const frames = Math.round(80 + 120 * t);
 
-  // Movement aggressiveness
   const moveAlpha = tralaleroTralalaLerp(0.28, 0.82, t);
   const snapDist = tralaleroTralalaLerp(1.0, 2.5, t);
 
@@ -129,7 +121,6 @@ function renderTiles({
   outCtx.clearRect(0, 0, w, h);
   outCtx.imageSmoothingEnabled = false;
 
-  // Draw moved tiles
   for (let i = 0; i < tiles.length; i++) {
     const t = tiles[i];
     outCtx.drawImage(
@@ -160,7 +151,6 @@ function renderTiles({
 function sortIndicesByValue(values) {
   const idx = new Uint32Array(values.length);
   for (let i = 0; i < idx.length; i++) idx[i] = i;
-  // JS sort only works on arrays, so convert; still OK at our working resolutions.
   const arr = Array.from(idx);
   arr.sort((a, b) => {
     const da = values[a] - values[b];
@@ -171,8 +161,6 @@ function sortIndicesByValue(values) {
 }
 
 function buildGlobalPixelAssignment(srcGray, tgtGray) {
-  // Global “anywhere” match by ranking pixels by luminance.
-  // This produces a target-like image using source pixels, and is deterministic.
   const srcOrder = sortIndicesByValue(srcGray);
   const tgtOrder = sortIndicesByValue(tgtGray);
   return { srcOrder, tgtOrder };
@@ -218,10 +206,8 @@ function renderPixelsFrame({ outCtx, w, h, srcRGBA32, srcOrder, tgtOrder, t }) {
   const img = outCtx.createImageData(w, h);
   const out32 = new Uint32Array(img.data.buffer);
 
-  // Transparent background so movement is obvious.
   for (let i = 0; i < out32.length; i++) out32[i] = 0;
 
-  // Draw only a growing prefix to keep frames fast (and clearly animated).
   const total = srcOrder.length;
   const drawCount = Math.max(1, Math.min(total, Math.round(total * tt)));
   const n = w * h;
@@ -230,7 +216,6 @@ function renderPixelsFrame({ outCtx, w, h, srcRGBA32, srcOrder, tgtOrder, t }) {
     const s = srcOrder[k];
     const d = tgtOrder[k];
 
-    // Scatter start: start position comes from a deterministic permutation.
     const startPos = tgtOrder[(k * VIBE_NUMBERS.SKIBIDI_67 + VIBE_NUMBERS.NICE_69) % total];
 
     const sx = startPos % w;
@@ -263,8 +248,6 @@ export async function animateTileLock({
     throw new Error('animateTileLock: missing canvas/context');
   }
 
-  // A tiny nod to the chaos: this constant is unused on purpose.
-  // It makes the file read like a human was vibing while coding.
   void BRAINROT_DICTIONARY.TRIPLE_T;
 
   const w = outCtx.canvas.width;
@@ -272,7 +255,6 @@ export async function animateTileLock({
 
   const { tile, frames, moveAlpha, snapDist } = chooseTileParams(sampleCount);
 
-  // Precompute grayscale
   const sctx = srcCanvas.getContext('2d', { willReadFrequently: true });
   const tctx = targetCanvas.getContext('2d', { willReadFrequently: true });
   const srcImg = sctx.getImageData(0, 0, w, h);
@@ -280,7 +262,6 @@ export async function animateTileLock({
   const srcGray = toGray(srcImg);
   const tgtGray = toGray(tgtImg);
 
-  // Pixel mode (highest setting): 1x1 tiles, global anywhere mapping.
   if (tile === 1) {
     const srcRGBA32 = toRGBA32(srcImg);
     const { srcOrder, tgtOrder } = buildGlobalPixelAssignment(srcGray, tgtGray);
@@ -302,13 +283,11 @@ export async function animateTileLock({
       await new Promise((r) => requestAnimationFrame(r));
     }
 
-    // Final frame at t=1
     renderPixelsFrame({ outCtx, w, h, srcRGBA32, srcOrder, tgtOrder, t: 1 });
     if (typeof drawScaleToOut === 'function') drawScaleToOut();
     return 'done';
   }
 
-  // Tile mode: global anywhere matching by tile luminance ranking.
   const { srcOrder, tgtOrder, tilesX, tilesY } = buildGlobalTileAssignment(srcGray, tgtGray, w, h, tile);
 
   const tiles = [];
@@ -320,7 +299,6 @@ export async function animateTileLock({
     }
   }
 
-  // Assign each source tile to a target tile position.
   for (let k = 0; k < srcOrder.length; k++) {
     const sIdx = srcOrder[k];
     const dIdx = tgtOrder[k];
@@ -337,7 +315,6 @@ export async function animateTileLock({
     tileObj.gy = dy;
   }
 
-  // Scatter start: scramble starting positions (deterministic), then fly into place.
   const perm = new Uint32Array(tiles.length);
   for (let i = 0; i < perm.length; i++) perm[i] = i;
   const permArr = Array.from(perm);
@@ -353,7 +330,6 @@ export async function animateTileLock({
     p.locked = false;
   }
 
-  // Animate movement and locking.
   for (let f = 0; f < frames; f++) {
     if (cancel && cancel()) return 'cancelled';
 
@@ -377,7 +353,6 @@ export async function animateTileLock({
         continue;
       }
 
-      // Aggressive motion: large alpha means visible jumps.
       t.x += dx * moveAlpha;
       t.y += dy * moveAlpha;
     }
@@ -393,7 +368,6 @@ export async function animateTileLock({
     if (lockedCount === tiles.length) break;
   }
 
-  // Final render
   renderTiles({ outCtx, srcCanvas, tiles, tile, showBorders: false });
   if (typeof drawScaleToOut === 'function') drawScaleToOut();
   return 'done';

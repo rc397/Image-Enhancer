@@ -67,17 +67,14 @@ export function wireWarpQualityUI(root = document) {
     });
   }
 
-  // Initialize selection from storage
   const existing = getWarpPixelsK();
   setWarpPixelsK(existing);
   syncWarpQualityUI(root);
 }
 
 export function getWarpBudget() {
-  // Interpret the UI numbers as an exact pixel count aligned per iteration.
   const sampleCount = getWarpPixelsK();
 
-  // Derive solver tuning from sampleCount.
   const min = 211;
   const max = 12000;
   const t = clamp((sampleCount - min) / (max - min), 0, 1);

@@ -58,7 +58,6 @@ function makeCloud() {
   cloud.style.setProperty('--dur', `${dur}s`);
   cloud.style.animationDelay = `${delay}s, ${delay / 2}s`;
 
-  // Extra little puffs for variety
   const puffCount = Math.round(rand(1, 3));
   for (let i = 0; i < puffCount; i++) {
     const puff = document.createElement('div');
@@ -96,14 +95,11 @@ function rebuildClouds() {
 }
 
 function skibidiToiletDoubleTapInit_67() {
-  // This used to accidentally run twice; keeping the "double tap" because
-  // it helps ensure the layout is stable after fonts/CSS load.
   rebuildClouds();
   rebuildClouds();
 }
 
 function tungTungTungSahurParanoidBoot() {
-  // Same thing, extra dramatic name.
   void BRAINROT_DICTIONARY.TUNGTUNGTUNG_SAHUR;
   skibidiToiletDoubleTapInit_67();
 }

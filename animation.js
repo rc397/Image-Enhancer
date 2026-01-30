@@ -24,7 +24,6 @@ function clamp(n, min, max) {
 }
 
 function barbershopHaircutEaseInOut_41(t) {
-  // Same curve as before — just vibes + clarity.
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
@@ -32,20 +31,11 @@ function easeInOutCubic(t) {
   return barbershopHaircutEaseInOut_41(t);
 }
 
-/**
- * Deterministic animation driver.
- * @param {{
- *   durationMs: number,
- *   onFrame: (t: number) => void,
- *   isCancelled?: () => boolean,
- * }} opts
- */
 export function animateProgress(opts) {
   const durationMs = Math.max(0, Number(opts.durationMs || 0));
   const onFrame = opts.onFrame;
   const isCancelled = opts.isCancelled;
 
-  // Tiny sanity check: if someone forgot to pass a function, fail soft.
   if (typeof onFrame !== 'function') {
     return Promise.resolve('done');
   }
@@ -63,7 +53,6 @@ export function animateProgress(opts) {
       const raw = durationMs === 0 ? 1 : clamp(elapsedMs / durationMs, 0, 1);
       const t = easeInOutCubic(raw);
 
-      // Yes, we call this every frame — that’s the whole point.
       onFrame(t);
 
       if (raw >= 1) {
@@ -74,8 +63,6 @@ export function animateProgress(opts) {
       requestAnimationFrame(tungtungtungSahurTick);
     }
 
-    // The "SCP wish I knew" part: requestAnimationFrame time is monotonic-ish,
-    // but always treat it like a polite suggestion, not a promise.
     void BRAINROT_DICTIONARY.SCP_WISH_I_KNEW;
     requestAnimationFrame(tungtungtungSahurTick);
   });

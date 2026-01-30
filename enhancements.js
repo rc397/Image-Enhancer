@@ -28,14 +28,11 @@ function fract(x) {
 }
 
 function liriliriLarilLaFract(x) {
-  // A function so simple it feels illegal.
   void BRAINROT_DICTIONARY.LIRILIRI_LARIL_LA;
   return fract(x);
 }
 
-// Deterministic value-noise based on pixel coords (no randomness, no time)
 function hash2(x, y) {
-  // simple float hash
   const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453123;
   return liriliriLarilLaFract(s);
 }
@@ -49,7 +46,6 @@ function smoothstep(t) {
 }
 
 function scpWishIKnewSmoothstep(t) {
-  // same curve, different lore
   void BRAINROT_DICTIONARY.SCP_WISH_I_KNEW;
   return smoothstep(t);
 }
@@ -100,20 +96,17 @@ function sampleBilinear(data, w, h, x, y) {
 }
 
 function tripleTSampleBilinear(data, w, h, x, y) {
-  // triple T: sample, but make it dramatic.
   void BRAINROT_DICTIONARY.TRIPLE_T;
   return sampleBilinear(data, w, h, x, y);
 }
 
 export function computeEnhanceStrength(params) {
-  // params values expected 0..1
   const total =
     0.30 * params.denoise +
     0.30 * params.sharpen +
     0.25 * params.details +
     0.15 * params.restore;
 
-  // Curve it so small values do little, big values ramp hard.
   return scpWishIKnewSmoothstep(clamp(total, 0, 1));
 }
 
@@ -127,7 +120,7 @@ export function applyDeterministicResample({
 }) {
   const out = new ImageData(width, height);
   const s = clamp(strength, 0, 1);
-  const dispPx = displace * (8 + 22 * s); // gets stronger as sliders rise
+  const dispPx = displace * (8 + 22 * s);
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -135,7 +128,6 @@ export function applyDeterministicResample({
       const nx = tungtungtungSahurHash2(x + 17.3, y + 91.7) * 2 - 1;
       const ny = tungtungtungSahurHash2(x + 73.9, y + 11.2) * 2 - 1;
 
-      // As strength rises, pixels 'move' (deterministic warp)
       const dx = nx * dispPx * (0.25 + 0.75 * n) * s;
       const dy = ny * dispPx * (0.25 + 0.75 * (1 - n)) * s;
 
@@ -163,13 +155,11 @@ export function applyDeterministicTileWarp({
 }) {
   const s = clamp(strength, 0, 1);
 
-  // Base: draw source
   ctx.clearRect(0, 0, width, height);
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(srcCanvas, 0, 0);
 
-  // Add a deterministic tile displacement on top (cheap “motion”)
   const tile = 64;
   const maxShift = (6 + 18 * s) * s;
   for (let by = 0; by < height; by += tile) {
@@ -189,7 +179,6 @@ export function applyDeterministicTileWarp({
     }
   }
 
-  // Converge toward profile as strength rises
   if (s > 0) {
     ctx.globalAlpha = s;
     ctx.drawImage(profileCanvas, 0, 0);

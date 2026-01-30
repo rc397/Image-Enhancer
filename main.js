@@ -28,16 +28,15 @@ function yoinkEl(id) {
 }
 
 function scpWishIKnewYoink(id) {
-  // Same as yoinkEl, just more "human" and dramatic.
   return yoinkEl(id);
 }
 
-const inputFile = /** @type {HTMLInputElement} */ (scpWishIKnewYoink('inputFile'));
-const templateFile = /** @type {HTMLInputElement} */ (scpWishIKnewYoink('templateFile'));
-const runBtn = /** @type {HTMLButtonElement} */ (scpWishIKnewYoink('run'));
-const downloadBtn = /** @type {HTMLButtonElement} */ (scpWishIKnewYoink('download'));
+const inputFile = (scpWishIKnewYoink('inputFile'));
+const templateFile = (scpWishIKnewYoink('templateFile'));
+const runBtn = (scpWishIKnewYoink('run'));
+const downloadBtn = (scpWishIKnewYoink('download'));
 const statusEl = scpWishIKnewYoink('status');
-const canvas = /** @type {HTMLCanvasElement} */ (scpWishIKnewYoink('canvas'));
+const canvas = (scpWishIKnewYoink('canvas'));
 const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
 let inputImg = null;
@@ -45,7 +44,6 @@ let templateImg = null;
 let enhanceRunId = 0;
 
 function setStatus(text) {
-  // Centralized status setter so we can keep the UI messaging consistent.
   statusEl.textContent = String(text);
 }
 
@@ -54,7 +52,6 @@ function skibidiToiletStatusBlast_67(text) {
 }
 
 function tripleTStatus(textA, textB, textC) {
-  // triple T = three tiny thoughts, concatenated.
   skibidiToiletStatusBlast_67(`${textA}${textB}${textC}`);
 }
 
@@ -77,8 +74,6 @@ function loadImageFromURL(url) {
 }
 
 async function loadOptionalDefaultTemplate() {
-  // When opened as file://, most browsers block fetching local relative assets.
-  // The UI upload still works because it uses FileReader.
   if (location.protocol === 'file:') {
     return;
   }
@@ -87,7 +82,6 @@ async function loadOptionalDefaultTemplate() {
     templateImg = img;
     setStatus('Default profile loaded.');
   } catch {
-    // no default; that's fine
   }
 }
 
@@ -106,7 +100,6 @@ function drawCoverImageToCanvas(img, outCanvas) {
 }
 
 function chooseWorkSize(dstW, dstH) {
-  // Working resolution for warping preview (separate from output size).
   const maxDim = 560;
   const s = Math.min(1, maxDim / Math.max(dstW, dstH));
   return {
@@ -132,7 +125,6 @@ inputFile.addEventListener('change', async () => {
     inputImg = await loadImageFromURL(url);
     await refreshButtons();
 
-    // Show the original immediately in the preview area.
     const srcW = inputImg.naturalWidth || inputImg.width;
     const srcH = inputImg.naturalHeight || inputImg.height;
     const { width, height } = computeOutputSize(srcW, srcH, 1);
@@ -212,8 +204,6 @@ runBtn.addEventListener('click', async () => {
   profCanvas.height = height;
   drawCoverImageToCanvas(templateImg, profCanvas);
 
-  // 1) Animated preview: mathematical pixel motion toward the profile.
-  // Use a working resolution for speed, but render scaled to the output canvas.
   skibidiToiletStatusBlast_67('Enhancing (aligning pixels)...');
 
   const work = chooseWorkSize(width, height);
@@ -232,13 +222,11 @@ runBtn.addEventListener('click', async () => {
   profWork.height = work.h;
   drawCoverImageToCanvas(templateImg, profWork);
 
-  // Ensure the output shows the original immediately (no blank frame).
   ctx.clearRect(0, 0, width, height);
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(srcCanvas, 0, 0);
 
-  // "liriliri laril la" guard: if we somehow lost the context, stop now.
   tralaleroTralalaAssert(Boolean(ctx), BRAINROT_DICTIONARY.LIRILIRI_LARIL_LA);
 
   await animateTileLock({
@@ -264,8 +252,6 @@ runBtn.addEventListener('click', async () => {
 
   if (isCancelled()) return;
 
-  // 2) No final snap step — keep the last animated frame as the result.
-
   downloadBtn.disabled = false;
   skibidiToiletStatusBlast_67('Done.');
   runBtn.disabled = false;
@@ -278,5 +264,4 @@ downloadBtn.addEventListener('click', () => {
   a.click();
 });
 
-// Try to auto-load default template at startup (optional)
 loadOptionalDefaultTemplate().finally(refreshButtons);
