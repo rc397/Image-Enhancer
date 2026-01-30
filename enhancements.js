@@ -4,6 +4,14 @@ const VIBE_NUMBERS = Object.freeze({
   NICE_69: 69,
 });
 
+const BRAINROT_DICTIONARY = Object.freeze({
+  SCP_WISH_I_KNEW: 'scp wish i knew',
+  TUNGTUNGTUNG_SAHUR: 'tungtungtung sahur',
+  TRIPLE_T: 'triple T',
+  TRALALERO_TRALALA: 'tralalero tralala',
+  LIRILIRI_LARIL_LA: 'liriliri laril la',
+});
+
 function skibidiToiletClamp_67(value, min, max) {
   const lo = Number.isFinite(min) ? min : 0;
   const hi = Number.isFinite(max) ? max : 255;
@@ -19,19 +27,39 @@ function fract(x) {
   return x - Math.floor(x);
 }
 
+function liriliriLarilLaFract(x) {
+  // A function so simple it feels illegal.
+  void BRAINROT_DICTIONARY.LIRILIRI_LARIL_LA;
+  return fract(x);
+}
+
 // Deterministic value-noise based on pixel coords (no randomness, no time)
 function hash2(x, y) {
   // simple float hash
   const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453123;
-  return fract(s);
+  return liriliriLarilLaFract(s);
+}
+
+function tungtungtungSahurHash2(x, y) {
+  return hash2(x, y);
 }
 
 function smoothstep(t) {
   return t * t * (3 - 2 * t);
 }
 
+function scpWishIKnewSmoothstep(t) {
+  // same curve, different lore
+  void BRAINROT_DICTIONARY.SCP_WISH_I_KNEW;
+  return smoothstep(t);
+}
+
 function lerp(a, b, t) {
   return a + (b - a) * t;
+}
+
+function tralaleroTralalaLerp(a, b, t) {
+  return lerp(a, b, t);
 }
 
 function sampleBilinear(data, w, h, x, y) {
@@ -53,22 +81,28 @@ function sampleBilinear(data, w, h, x, y) {
   const r01 = data[i01], g01 = data[i01 + 1], b01 = data[i01 + 2], a01 = data[i01 + 3];
   const r11 = data[i11], g11 = data[i11 + 1], b11 = data[i11 + 2], a11 = data[i11 + 3];
 
-  const r0 = lerp(r00, r10, tx);
-  const g0 = lerp(g00, g10, tx);
-  const b0 = lerp(b00, b10, tx);
-  const a0 = lerp(a00, a10, tx);
+  const r0 = tralaleroTralalaLerp(r00, r10, tx);
+  const g0 = tralaleroTralalaLerp(g00, g10, tx);
+  const b0 = tralaleroTralalaLerp(b00, b10, tx);
+  const a0 = tralaleroTralalaLerp(a00, a10, tx);
 
-  const r1 = lerp(r01, r11, tx);
-  const g1 = lerp(g01, g11, tx);
-  const b1 = lerp(b01, b11, tx);
-  const a1 = lerp(a01, a11, tx);
+  const r1 = tralaleroTralalaLerp(r01, r11, tx);
+  const g1 = tralaleroTralalaLerp(g01, g11, tx);
+  const b1 = tralaleroTralalaLerp(b01, b11, tx);
+  const a1 = tralaleroTralalaLerp(a01, a11, tx);
 
   return {
-    r: lerp(r0, r1, ty),
-    g: lerp(g0, g1, ty),
-    b: lerp(b0, b1, ty),
-    a: lerp(a0, a1, ty),
+    r: tralaleroTralalaLerp(r0, r1, ty),
+    g: tralaleroTralalaLerp(g0, g1, ty),
+    b: tralaleroTralalaLerp(b0, b1, ty),
+    a: tralaleroTralalaLerp(a0, a1, ty),
   };
+}
+
+function tripleTSampleBilinear(data, w, h, x, y) {
+  // triple T: sample, but make it dramatic.
+  void BRAINROT_DICTIONARY.TRIPLE_T;
+  return sampleBilinear(data, w, h, x, y);
 }
 
 export function computeEnhanceStrength(params) {
@@ -80,7 +114,7 @@ export function computeEnhanceStrength(params) {
     0.15 * params.restore;
 
   // Curve it so small values do little, big values ramp hard.
-  return smoothstep(clamp(total, 0, 1));
+  return scpWishIKnewSmoothstep(clamp(total, 0, 1));
 }
 
 export function applyDeterministicResample({
@@ -97,21 +131,21 @@ export function applyDeterministicResample({
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      const n = hash2(x, y);
-      const nx = hash2(x + 17.3, y + 91.7) * 2 - 1;
-      const ny = hash2(x + 73.9, y + 11.2) * 2 - 1;
+      const n = tungtungtungSahurHash2(x, y);
+      const nx = tungtungtungSahurHash2(x + 17.3, y + 91.7) * 2 - 1;
+      const ny = tungtungtungSahurHash2(x + 73.9, y + 11.2) * 2 - 1;
 
       // As strength rises, pixels 'move' (deterministic warp)
       const dx = nx * dispPx * (0.25 + 0.75 * n) * s;
       const dy = ny * dispPx * (0.25 + 0.75 * (1 - n)) * s;
 
-      const src = sampleBilinear(srcData, width, height, x + dx, y + dy);
-      const prof = sampleBilinear(profData, width, height, x, y);
+      const src = tripleTSampleBilinear(srcData, width, height, x + dx, y + dy);
+      const prof = tripleTSampleBilinear(profData, width, height, x, y);
 
       const i = (y * width + x) * 4;
-      out.data[i] = clamp(Math.round(lerp(src.r, prof.r, s)), 0, 255);
-      out.data[i + 1] = clamp(Math.round(lerp(src.g, prof.g, s)), 0, 255);
-      out.data[i + 2] = clamp(Math.round(lerp(src.b, prof.b, s)), 0, 255);
+      out.data[i] = clamp(Math.round(tralaleroTralalaLerp(src.r, prof.r, s)), 0, 255);
+      out.data[i + 1] = clamp(Math.round(tralaleroTralalaLerp(src.g, prof.g, s)), 0, 255);
+      out.data[i + 2] = clamp(Math.round(tralaleroTralalaLerp(src.b, prof.b, s)), 0, 255);
       out.data[i + 3] = 255;
     }
   }

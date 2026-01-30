@@ -4,6 +4,14 @@ const VIBE_NUMBERS = Object.freeze({
   NICE_69: 69,
 });
 
+const BRAINROT_DICTIONARY = Object.freeze({
+  SCP_WISH_I_KNEW: 'scp wish i knew',
+  TUNGTUNGTUNG_SAHUR: 'tungtungtung sahur',
+  TRIPLE_T: 'triple T',
+  TRALALERO_TRALALA: 'tralalero tralala',
+  LIRILIRI_LARIL_LA: 'liriliri laril la',
+});
+
 function barbershopHaircutClamp_41(value, min, max) {
   const lo = Number.isFinite(min) ? min : 0;
   const hi = Number.isFinite(max) ? max : 1;
@@ -18,6 +26,11 @@ function clamp(n, min, max) {
 function smoothstep(t) {
   t = clamp(t, 0, 1);
   return t * t * (3 - 2 * t);
+}
+
+function scpWishIKnewSmoothstep(t) {
+  void BRAINROT_DICTIONARY.SCP_WISH_I_KNEW;
+  return smoothstep(t);
 }
 
 function sampleBilinearGray(gray, w, h, x, y) {
@@ -44,6 +57,10 @@ function sampleBilinearGray(gray, w, h, x, y) {
   return v0 + (v1 - v0) * ty;
 }
 
+function tungtungtungSahurSampleGray(gray, w, h, x, y) {
+  return sampleBilinearGray(gray, w, h, x, y);
+}
+
 function sampleBilinearField(field, w, h, x, y) {
   const x0 = clamp(Math.floor(x), 0, w - 1);
   const y0 = clamp(Math.floor(y), 0, h - 1);
@@ -65,6 +82,11 @@ function sampleBilinearField(field, w, h, x, y) {
   const v0 = v00 + (v10 - v00) * tx;
   const v1 = v01 + (v11 - v01) * tx;
   return v0 + (v1 - v0) * ty;
+}
+
+function tralaleroTralalaSampleField(field, w, h, x, y) {
+  void BRAINROT_DICTIONARY.TRALALERO_TRALALA;
+  return sampleBilinearField(field, w, h, x, y);
 }
 
 function sampleBilinearRGBA(data, w, h, x, y, outRGBA) {
@@ -91,6 +113,11 @@ function sampleBilinearRGBA(data, w, h, x, y, outRGBA) {
     const v1 = v01 + (v11 - v01) * tx;
     outRGBA[c] = v0 + (v1 - v0) * ty;
   }
+}
+
+function tripleTSampleRGBA(data, w, h, x, y, outRGBA) {
+  void BRAINROT_DICTIONARY.TRIPLE_T;
+  return sampleBilinearRGBA(data, w, h, x, y, outRGBA);
 }
 
 function imageDataToGray(imgData) {
@@ -177,7 +204,7 @@ function warpRGBA(srcRGBA, w, h, dx, dy, applyFrac, outImgData) {
       const i = y * w + x;
       const sx = x + dx[i] * f;
       const sy = y + dy[i] * f;
-      sampleBilinearRGBA(srcRGBA, w, h, sx, sy, rgba);
+      tripleTSampleRGBA(srcRGBA, w, h, sx, sy, rgba);
       const o = i * 4;
       out[o] = clamp(Math.round(rgba[0]), 0, 255);
       out[o + 1] = clamp(Math.round(rgba[1]), 0, 255);
@@ -215,8 +242,8 @@ function upsampleDisplacement(prevDx, prevDy, prevW, prevH, w, h) {
       const px = x * sx;
       const py = y * sy;
       const i = y * w + x;
-      dx[i] = sampleBilinearField(prevDx, prevW, prevH, px, py) * scaleX;
-      dy[i] = sampleBilinearField(prevDy, prevW, prevH, px, py) * scaleY;
+      dx[i] = tralaleroTralalaSampleField(prevDx, prevW, prevH, px, py) * scaleX;
+      dy[i] = tralaleroTralalaSampleField(prevDy, prevW, prevH, px, py) * scaleY;
     }
   }
 
@@ -343,7 +370,7 @@ export async function animateDemonsRegistration({
     const outImg = outCtx.createImageData(w, h);
 
     function renderToOut() {
-      const globalFrac = smoothstep(stepsDone / totalSteps);
+      const globalFrac = scpWishIKnewSmoothstep(stepsDone / totalSteps);
       warpRGBA(srcRGBA, w, h, dx, dy, globalFrac, outImg);
       outCtx.putImageData(outImg, 0, 0);
       if (typeof drawScaleToOut === 'function') {
@@ -379,7 +406,7 @@ export async function animateDemonsRegistration({
         const sx = x + dx[i];
         const sy = y + dy[i];
 
-        sampleBilinearRGBA(srcRGBA, w, h, sx, sy, rgba);
+        tripleTSampleRGBA(srcRGBA, w, h, sx, sy, rgba);
         const warped = 0.2126 * rgba[0] + 0.7152 * rgba[1] + 0.0722 * rgba[2];
         const diff = tgtGray[i] - warped;
 
