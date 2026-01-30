@@ -78,7 +78,7 @@ async function loadOptionalDefaultTemplate() {
     return;
   }
   try {
-    const img = await loadImageFromURL('assets/default-template.webp');
+    const img = await loadImageFromURL('assets/default-template.jpg');
     templateImg = img;
     setStatus('Default profile loaded.');
   } catch {
@@ -174,7 +174,7 @@ runBtn.addEventListener('click', async () => {
 
   if (!templateImg) {
     const extra = location.protocol === 'file:'
-      ? ' (Tip: if you want a default template without uploading, host this folder (e.g. GitHub Pages) and add assets/default-template.webp)'
+      ? ' (Tip: if you want a default template without uploading, host this folder (e.g. GitHub Pages) and add assets/default-template.jpg)'
       : '';
     tripleTStatus('No profile selected.', extra, '');
     return;
