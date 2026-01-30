@@ -1,20 +1,4 @@
-# Image-Enhancer
+Well Folks! If you have been following my progress lately, I've made the best Calculator app known to man, but today, IM ACTUALLY GOING TO MAKE SOMETHING BENIFICIAL!!!
 
-Static in-browser webpage that applies a template-based image transform entirely in your browser.
+Behold, my extraordinarily complex and ambitious project! IMAGE ENHANCER, where I aim for it to upscale any image from 720p to 8k using some forbidden magic!
 
-## How to use
-
-1. Open `index.html` in a browser (you can double-click it).
-2. Upload any image under **Source image** (only used to pick output size).
-3. Upload your **Template image** (this becomes the output).
-   - Optional (when hosted): add `assets/default-template.webp` and it will auto-load.
-4. Click **Apply** and optionally **Download PNG**.
-
-## Notes
-
-- Everything runs locally in your browser; images are not uploaded anywhere.
-- Output size is capped for speed.
-
-## GitHub Pages
-
-On GitHub: Repo Settings → Pages → Deploy from a branch → `main` / `/ (root)`.
